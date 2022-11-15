@@ -1,5 +1,5 @@
 # Directories containing Python code to format and lint.
-PYTHON_DIRECTORIES := utils
+PYTHON_DIRECTORIES := utils scripts
 
 format: # Formats the Python code.
 	isort ${PYTHON_DIRECTORIES}
