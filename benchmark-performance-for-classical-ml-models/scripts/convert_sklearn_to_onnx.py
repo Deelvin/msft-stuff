@@ -20,6 +20,8 @@ def convert_to_onnx(classifier, save_path: str) -> None:
 def main():
     target_classifiers = [
         "RandomForestClassifier",
+        "ExtraTreesClassifier",
+        "GradientBoostingClassifier",
     ]
 
     X, y = utils.dataset.get_classification_dataset()
