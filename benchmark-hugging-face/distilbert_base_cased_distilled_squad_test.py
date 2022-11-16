@@ -15,16 +15,19 @@ if __name__ == "__main__":
     pass
 
   parser = argparse.ArgumentParser(
-    description="Performance test of Distilbert-base-cased model (hugging face model zoo: " +
-                "https://huggingface.co/distilbert-base-cased) on TVM using VirtualMachine. " +
+    description="Performance test of Distilbert-base-cased distilled by SQuAD model on TVM using VirtualMachine. " +
+                "Hugging face model zoo: https://huggingface.co/distilbert-base-cased-distilled-squad?context=My+name+is+Wolfgang+and+I+live+in+Berlin&question=Where+do+I+live%3F, " +
+                "ONNX format: https://huggingface.co/philschmid/distilbert-onnx?context=My+name+is+Wolfgang+and+I+live+in+Berlin&question=Where+do+I+live%3F. " +
                 "Default target HW is Intel® Xeon® Scalable Platinum 8173M (skylake-avx512).",
     formatter_class=MyFormatter
   )
   # Model format
   parser.add_argument("-m", "--model_path", default="", type=str, help=\
-    "The path to Distilbert-base-cased model in onnx format")
-  parser.add_argument("-i", "--input_text", default="Hello I'm a [MASK] model.", type=str, help=\
-    "Test input text for Distilbert-base-cased model")
+    "The path to Distilbert-base-cased distilled by SQuAD model in onnx format")
+  parser.add_argument("-q", "--input_question", default="Who was Jim Henson?", type=str, help=\
+    "Test input question for Distilbert-base-cased distilled by SQuAD model")
+  parser.add_argument("-i", "--input_text", default="Jim Henson was a nice puppet", type=str, help=\
+    "Test input text for Distilbert-base-cased distilled by SQuAD model")
   parser.add_argument("-tvm", action="store_false", default=True, help=\
     "Performance test of TVM")
   parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
@@ -43,12 +46,12 @@ if __name__ == "__main__":
 
   onnx_model = onnx.load(args.model_path)
 
-  pretrained_weights = 'distilbert-base-cased'
+  pretrained_weights = 'distilbert-base-cased-distilled-squad'
 
   tokenizer = DistilBertTokenizer.from_pretrained(pretrained_weights)
-  encoded_input = tokenizer(args.input_text, return_tensors='np')
+  encoded_input = tokenizer(args.input_question, args.input_text, return_tensors='np')
 
-  benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-base-cased")
+  benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-base-cased distilled by SQuAD")
 
   if(args.tvm):
     print("----- TVM testing -----")
