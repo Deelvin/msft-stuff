@@ -4,10 +4,7 @@ from functools import partial
 import onnx
 from transformers import DistilBertTokenizer
 
-import tvm
-from tvm import relay
-
-from utils import perf_test, get_tvm_vm
+from utils import perf_test
 
 
 if __name__ == "__main__":
@@ -30,6 +27,8 @@ if __name__ == "__main__":
     "Test input text for Distilbert-base-cased distilled by SQuAD model")
   parser.add_argument("-tvm", action="store_false", default=True, help=\
     "Performance test of TVM")
+  parser.add_argument("-ort", action="store_true", default=False, help=\
+    "Performance test of ONNX Runtime")
   parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
     "Target for model inference")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
@@ -49,20 +48,14 @@ if __name__ == "__main__":
   pretrained_weights = 'distilbert-base-cased-distilled-squad'
 
   tokenizer = DistilBertTokenizer.from_pretrained(pretrained_weights)
-  encoded_input = tokenizer(args.input_question, args.input_text, return_tensors='np')
+  encoded_inputs = tokenizer(args.input_question, args.input_text, return_tensors='np')
 
   benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-base-cased distilled by SQuAD")
 
   if(args.tvm):
-    print("----- TVM testing -----")
-    shape_dict = {input_name: input.shape for (input_name, input) in encoded_input}
-    mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=True)
-    mod = relay.transform.DynamicToStatic()(mod)
+    from tvm_utils import tvm_test
+    tvm_test(benchmark_test, onnx_model, encoded_inputs, opt_level, args.target, args.target, freeze)
 
-    tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in encoded_input}
-
-    dev = tvm.device(str(target), 0)
- 
-    m = get_tvm_vm(mod, opt_level, target, target_host, params, dev)
-    m.set_input(**tvm_inputs)
-    benchmark_test(m.run)
+  if args.ort:
+    from ort_utils import ort_test
+    ort_test(benchmark_test, args.model_path, encoded_inputs)
