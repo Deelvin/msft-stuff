@@ -1,5 +1,6 @@
 import os
 import copy
+from functools import partial
 
 import tvm
 from tvm import relay, auto_scheduler
@@ -71,14 +72,15 @@ def get_tvm_vm(mod,
 
 def tvm_test(benchmark_test, onnx_model, inputs, opt_level, target, target_host, freeze=True):
   print("----- TVM testing -----")
-  shape_dict = {input_name: input.shape for (input_name, input) in inputs}
+  shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
   mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
   mod = relay.transform.DynamicToStatic()(mod)
 
-  tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs}
+  tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
   dev = tvm.device(str(target), 0)
 
   m = get_tvm_vm(mod, opt_level, target, target_host, params, dev)
-  m.set_input(**tvm_inputs)
-  benchmark_test(m.run, framework_name = "TVM")
+  m.set_input("main", **tvm_inputs)
+  tvm_runner = partial(m.invoke, "main")
+  benchmark_test(tvm_runner, framework_name = "TVM")
