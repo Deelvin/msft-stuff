@@ -8,7 +8,7 @@ from onnxruntime.quantization import (
 )
 
 
-if __name__ == "__main__":
+def main():
   class MyFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
     pass
 
@@ -22,7 +22,7 @@ if __name__ == "__main__":
   parser.add_argument("-m", "--model_path", default="", type=str, help=\
     "The path to the model in onnx format")
   parser.add_argument("-o", "--output_model_path", default="./quantized_model.onnx", type=str, help=\
-    "The path to the model in onnx format")
+    "The path to output quantized model in onnx format")
   parser.add_argument("-qt", "--quantization_type", default="static", type=str, help=\
     "Quantization type: static or dynamic")
   parser.add_argument("-opt", "--optimize", action="store_true", default=False, help=\
@@ -49,3 +49,6 @@ if __name__ == "__main__":
     )
   else:
     print("Wrong quantization type:", args.quantization_type)
+
+if __name__ == "__main__":
+  main()
