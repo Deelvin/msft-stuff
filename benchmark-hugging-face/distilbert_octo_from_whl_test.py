@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
   args = parser.parse_args()
 
-  benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-base-uncased")
+  benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-by-OctoML")
   best_model = distilbert.OctomizedModel()
 
   tz = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
