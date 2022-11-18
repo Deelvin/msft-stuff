@@ -1,17 +1,17 @@
-import abc
 import os
+import pickle
 import typing
 
 import numpy
 import onnxruntime
 import skl2onnx
-import sklearn.ensemble
 import tqdm
 
+import utils.common
 import utils.dataset
 
 
-def is_classifier(model_type: abc.ABCMeta) -> bool:
+def is_classifier(model_type: typing.Type[typing.Any]) -> bool:
     import skl2onnx._supported_operators
 
     return model_type in skl2onnx._supported_operators.sklearn_classifier_list
@@ -19,11 +19,11 @@ def is_classifier(model_type: abc.ABCMeta) -> bool:
 
 def check_ort_inference(
     model_path: str,
-    input_dict: typing.Dict[str, numpy.ndarray],
-    reference_output: typing.List,
+    input_dict: typing.Dict[str, typing.List[numpy.ndarray]],
+    reference_output: typing.List[numpy.ndarray],
 ) -> None:
     engine = onnxruntime.InferenceSession(model_path)
-    with utils.Profiler("ONNX Runtime inference", show_latency=True):
+    with utils.common.Profiler("ONNX Runtime inference", show_latency=True):
         ort_output = engine.run(None, input_dict)
 
     assert len(reference_output) == len(ort_output)
@@ -31,9 +31,14 @@ def check_ort_inference(
         assert numpy.allclose(reference, ort)
 
 
-def convert_to_onnx(
-    model, save_path: str, input_name: str, input_shape: typing.Tuple
-) -> None:
+def convert_to_onnx_with_skl2onnx(
+    model, model_name: str, input_name: str, input_shape: typing.Tuple
+) -> str:
+    save_root = os.path.join(utils.project_root(), "models", "skl2onnx")
+    if not os.path.exists(save_root):
+        os.makedirs(save_root)
+    save_path = os.path.join(save_root, f"{model_name}.onnx")
+
     initial_type = [
         (
             input_name,
@@ -48,47 +53,50 @@ def convert_to_onnx(
     with open(save_path, "wb") as f:
         f.write(onnx_model.SerializeToString())
 
+    return save_path
+
 
 def convert_models(
-    target_models: typing.List[str], X: numpy.ndarray, y: numpy.ndarray
+    target_models: typing.List[str], dataset_generator: typing.Callable
 ) -> None:
+    # Create dataset
+    X, y = dataset_generator()
     reference_input = X[0]
     input_name = "input"
     input_shape = reference_input.shape
 
+    # Convert models
     for model_name in tqdm.tqdm(target_models):
-        model = getattr(sklearn.ensemble, model_name)()
-        model.fit(X, y)
+        with open(
+            os.path.join(
+                utils.project_root(), "models", "sklearn", f"{model_name}.sklearn"
+            ),
+            "rb",
+        ) as model_file:
+            model = pickle.loads(model_file.read())
 
-        model_path = os.path.join(
-            utils.project_root(), "models", "onnx", f"{model_name}.onnx"
+        model_path = convert_to_onnx_with_skl2onnx(
+            model, model_name, input_name, input_shape
         )
-        convert_to_onnx(model, model_path, input_name, input_shape)
 
-        with utils.Profiler("Python sklearn inference", show_latency=True):
+        with utils.common.Profiler("Python sklearn inference", show_latency=True):
             reference_output = [
                 model.predict([reference_input]),
-                model.predict_proba([reference_input]),
             ]
+            if is_classifier(type(model)):
+                reference_output.append(model.predict_proba([reference_input]))
         check_ort_inference(
             model_path, {input_name: [reference_input]}, reference_output
         )
 
 
 def main():
-    target_classifiers = [
-        "RandomForestClassifier",
-        "ExtraTreesClassifier",
-        "GradientBoostingClassifier",
-    ]
-    convert_models(target_classifiers, *utils.dataset.get_classification_dataset())
-
-    target_regressors = [
-        "RandomForestRegressor",
-        "ExtraTreesRegressor",
-        "GradientBoostingRegressor",
-    ]
-    # convert_models(target_regressors, *utils.dataset.get_regression_dataset())
+    convert_models(
+        utils.common.sklearn_classifiers, utils.dataset.get_classification_dataset
+    )
+    convert_models(
+        utils.common.sklearn_regressors, utils.dataset.get_regression_dataset
+    )
 
 
 if __name__ == "__main__":
