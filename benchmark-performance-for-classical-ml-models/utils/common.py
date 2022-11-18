@@ -13,6 +13,10 @@ sklearn_regressors = [
     "GradientBoostingRegressor",
 ]
 
+outlier_detectors = [
+    "IsolationForest",
+]
+
 
 class Profiler:
     def __init__(self, name="", show_latency=False, iterations_number=1):

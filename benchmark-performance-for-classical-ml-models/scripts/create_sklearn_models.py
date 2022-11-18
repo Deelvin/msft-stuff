@@ -21,7 +21,9 @@ def serialize_models(
     X, y = dataset_generator()
     for model_name in tqdm.tqdm(models):
         print("\n", model_name, "\n")
-        model = getattr(sklearn.ensemble, model_name)(random_state=47)
+        model = getattr(sklearn.ensemble, model_name)(
+            n_estimators=1000, random_state=47
+        )
         model.fit(X, y)
 
         # Serialize and save model
@@ -37,6 +39,9 @@ def main():
     )
     serialize_models(
         utils.common.sklearn_regressors, utils.dataset.get_regression_dataset
+    )
+    serialize_models(
+        utils.common.outlier_detectors, utils.dataset.get_regression_dataset
     )
 
 

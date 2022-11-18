@@ -97,6 +97,7 @@ def main():
     convert_models(
         utils.common.sklearn_regressors, utils.dataset.get_regression_dataset
     )
+    convert_models(utils.common.outlier_detectors, utils.dataset.get_regression_dataset)
 
 
 if __name__ == "__main__":
