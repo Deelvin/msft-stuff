@@ -18,7 +18,7 @@ def serialize_models(
         os.makedirs(save_root)
 
     # Fit model
-    X, y = dataset_generator(n_samples=10)
+    X, y = dataset_generator(n_samples=100)
     for model_name in tqdm.tqdm(models):
         print("\n", model_name, "\n")
         model = getattr(sklearn.ensemble, model_name)(
