@@ -4,6 +4,7 @@ import typing
 
 import numpy
 import numpy.testing
+import onnx
 import onnxruntime
 import skl2onnx
 import tqdm
@@ -35,13 +36,34 @@ def check_ort_inference(
             )
 
 
+class SaveONNX:
+    def __init__(self, save_root: str):
+        self.save_root = save_root
+
+    def __call__(
+        self,
+        convert_func: typing.Callable[..., typing.Tuple[onnx.ModelProto, str]],
+    ):
+        def wrapper(*args, **kwargs):
+            if not os.path.exists(self.save_root):
+                os.makedirs(self.save_root)
+
+            onnx_model, save_name = convert_func(*args, **kwargs)
+
+            save_path = os.path.join(self.save_root, save_name)
+            with open(save_path, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+
+            return save_path
+
+        return wrapper
+
+
+@SaveONNX(save_root=os.path.join(utils.project_root(), "models", "skl2onnx"))
 def convert_to_onnx_with_skl2onnx(
     model, model_name: str, input_name: str, input_shape: typing.Tuple
-) -> str:
-    save_root = os.path.join(utils.project_root(), "models", "skl2onnx")
-    if not os.path.exists(save_root):
-        os.makedirs(save_root)
-    save_path = os.path.join(save_root, f"skl2onnx_{model_name}.onnx")
+) -> typing.Tuple[onnx.ModelProto, str]:
+    save_name = f"skl2onnx_{model_name}.onnx"
 
     initial_type = [
         (
@@ -54,10 +76,12 @@ def convert_to_onnx_with_skl2onnx(
         initial_types=initial_type,
         options={id(model): {"zipmap": False}} if is_classifier(type(model)) else None,
     )
-    with open(save_path, "wb") as f:
-        f.write(onnx_model.SerializeToString())
 
-    return save_path
+    return onnx_model, save_name
+
+
+def convert_to_onnx_with_hummingbird():
+    pass
 
 
 def convert_models(
