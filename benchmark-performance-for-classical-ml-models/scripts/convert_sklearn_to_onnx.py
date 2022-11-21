@@ -28,7 +28,9 @@ def check_ort_inference(
 
     assert len(reference_output) == len(ort_output)
     for reference, ort in zip(reference_output, ort_output):
-        assert numpy.allclose(reference, ort)
+        assert numpy.allclose(
+            reference, ort.reshape(reference.shape), rtol=1.0e-5, atol=1.0e-5
+        )
 
 
 def convert_to_onnx_with_skl2onnx(
@@ -42,7 +44,7 @@ def convert_to_onnx_with_skl2onnx(
     initial_type = [
         (
             input_name,
-            skl2onnx.common.data_types.FloatTensorType(shape=[1, *input_shape]),
+            skl2onnx.common.data_types.FloatTensorType(shape=input_shape),
         )
     ]
     onnx_model = skl2onnx.convert_sklearn(
@@ -60,10 +62,9 @@ def convert_models(
     target_models: typing.List[str], dataset_generator: typing.Callable
 ) -> None:
     # Create dataset
-    X, y = dataset_generator()
-    reference_input = X[0]
+    X, y = dataset_generator(n_samples=100)
     input_name = "input"
-    input_shape = reference_input.shape
+    input_shape = X.shape
 
     # Convert models
     for model_name in tqdm.tqdm(target_models):
@@ -81,13 +82,11 @@ def convert_models(
 
         with utils.common.Profiler("Python sklearn inference", show_latency=True):
             reference_output = [
-                model.predict([reference_input]),
+                model.predict(X).astype("float32"),
             ]
             if is_classifier(type(model)):
-                reference_output.append(model.predict_proba([reference_input]))
-        check_ort_inference(
-            model_path, {input_name: [reference_input]}, reference_output
-        )
+                reference_output.append(model.predict_proba(X))
+        check_ort_inference(model_path, {input_name: X}, reference_output)
 
 
 def main():
