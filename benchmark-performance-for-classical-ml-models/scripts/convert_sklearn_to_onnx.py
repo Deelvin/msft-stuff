@@ -3,6 +3,7 @@ import pickle
 import typing
 
 import numpy
+import numpy.testing
 import onnxruntime
 import skl2onnx
 import tqdm
@@ -28,9 +29,10 @@ def check_ort_inference(
 
     assert len(reference_output) == len(ort_output)
     for reference, ort in zip(reference_output, ort_output):
-        assert numpy.allclose(
-            reference, ort.reshape(reference.shape), rtol=1.0e-5, atol=1.0e-5
-        )
+        if "int" not in str(reference.dtype):
+            numpy.testing.assert_allclose(
+                reference, ort.reshape(reference.shape), rtol=1.0e-4, atol=1.0e-4
+            )
 
 
 def convert_to_onnx_with_skl2onnx(
@@ -39,7 +41,7 @@ def convert_to_onnx_with_skl2onnx(
     save_root = os.path.join(utils.project_root(), "models", "skl2onnx")
     if not os.path.exists(save_root):
         os.makedirs(save_root)
-    save_path = os.path.join(save_root, f"{model_name}.onnx")
+    save_path = os.path.join(save_root, f"skl2onnx_{model_name}.onnx")
 
     initial_type = [
         (
@@ -62,7 +64,7 @@ def convert_models(
     target_models: typing.List[str], dataset_generator: typing.Callable
 ) -> None:
     # Create dataset
-    X, y = dataset_generator(n_samples=100)
+    X, y = dataset_generator(n_samples=10000)
     input_name = "input"
     input_shape = X.shape
 
@@ -82,7 +84,7 @@ def convert_models(
 
         with utils.common.Profiler("Python sklearn inference", show_latency=True):
             reference_output = [
-                model.predict(X).astype("float32"),
+                model.predict(X),
             ]
             if is_classifier(type(model)):
                 reference_output.append(model.predict_proba(X))
@@ -96,7 +98,8 @@ def main():
     convert_models(
         utils.common.sklearn_regressors, utils.dataset.get_regression_dataset
     )
-    convert_models(utils.common.outlier_detectors, utils.dataset.get_regression_dataset)
+    # TODO(agladyshev): deadlock?
+    # convert_models(utils.common.outlier_detectors, utils.dataset.get_regression_dataset)
 
 
 if __name__ == "__main__":
