@@ -2,6 +2,7 @@ import os
 import pickle
 import typing
 
+import hummingbird.ml
 import numpy
 import numpy.testing
 import onnx
@@ -61,27 +62,55 @@ class SaveONNX:
 
 @SaveONNX(save_root=os.path.join(utils.project_root(), "models", "skl2onnx"))
 def convert_to_onnx_with_skl2onnx(
-    model, model_name: str, input_name: str, input_shape: typing.Tuple
+    skl_model, model_name: str, input_dict: typing.Dict[str, numpy.ndarray]
 ) -> typing.Tuple[onnx.ModelProto, str]:
+    def get_tensor_type(tensor: numpy.ndarray):
+        if tensor.dtype == numpy.float32:
+            tensor_type = skl2onnx.common.data_types.FloatTensorType(shape=tensor.shape)
+        else:
+            raise NotImplementedError(f"Type {tensor.dtype} not supported.")
+        return tensor_type
+
     save_name = f"skl2onnx_{model_name}.onnx"
 
     initial_type = [
         (
             input_name,
-            skl2onnx.common.data_types.FloatTensorType(shape=input_shape),
+            get_tensor_type(input_dict[input_name]),
         )
+        for input_name in input_dict.keys()
     ]
     onnx_model = skl2onnx.convert_sklearn(
-        model,
+        skl_model,
         initial_types=initial_type,
-        options={id(model): {"zipmap": False}} if is_classifier(type(model)) else None,
+        options={id(skl_model): {"zipmap": False}}
+        if is_classifier(type(skl_model))
+        else None,
     )
 
     return onnx_model, save_name
 
 
-def convert_to_onnx_with_hummingbird():
-    pass
+@SaveONNX(save_root=os.path.join(utils.project_root(), "models", "hummingbird"))
+def convert_to_onnx_with_hummingbird(
+    skl_model, model_name: str, input_dict: typing.Dict[str, numpy.ndarray]
+) -> typing.Tuple[onnx.ModelProto, str]:
+    save_name = f"hummingbird_{model_name}.onnx"
+
+    # TODO(agladyshev): call of hummingbird.ml._topology.convert.fix_graph should be commented
+    input_names = list(input_dict.keys())
+    onnx_model = hummingbird.ml.convert(
+        skl_model,
+        "onnx",
+        test_input=[input_dict[input_name] for input_name in input_names]
+        if len(input_names) > 1
+        else input_dict[input_names[0]],
+        extra_config=dict(
+            input_names=input_names,
+        ),
+    ).model
+
+    return onnx_model, save_name
 
 
 def convert_models(
@@ -89,8 +118,7 @@ def convert_models(
 ) -> None:
     # Create dataset
     X, y = dataset_generator(n_samples=10000)
-    input_name = "input"
-    input_shape = X.shape
+    input_dict = {"input": X}
 
     # Convert models
     for model_name in tqdm.tqdm(target_models):
@@ -102,9 +130,8 @@ def convert_models(
         ) as model_file:
             model = pickle.loads(model_file.read())
 
-        model_path = convert_to_onnx_with_skl2onnx(
-            model, model_name, input_name, input_shape
-        )
+        model_path = convert_to_onnx_with_skl2onnx(model, model_name, input_dict)
+        model_path = convert_to_onnx_with_hummingbird(model, model_name, input_dict)
 
         with utils.common.Profiler("Python sklearn inference", show_latency=True):
             reference_output = [
@@ -112,7 +139,7 @@ def convert_models(
             ]
             if is_classifier(type(model)):
                 reference_output.append(model.predict_proba(X))
-        check_ort_inference(model_path, {input_name: X}, reference_output)
+        check_ort_inference(model_path, input_dict, reference_output)
 
 
 def main():
@@ -122,7 +149,7 @@ def main():
     convert_models(
         utils.common.sklearn_regressors, utils.dataset.get_regression_dataset
     )
-    # TODO(agladyshev): deadlock?
+    # TODO(agladyshev): deadlock for skl2onnx?
     # convert_models(utils.common.outlier_detectors, utils.dataset.get_regression_dataset)
 
 
