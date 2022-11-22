@@ -45,7 +45,7 @@ class SaveONNX:
         self,
         convert_func: typing.Callable[..., typing.Tuple[onnx.ModelProto, str]],
     ):
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> str:
             if not os.path.exists(self.save_root):
                 os.makedirs(self.save_root)
 
@@ -91,13 +91,13 @@ def convert_to_onnx_with_skl2onnx(
     return onnx_model, save_name
 
 
+# TODO(agladyshev): call of hummingbird.ml._topology.convert.fix_graph should be commented
 @SaveONNX(save_root=os.path.join(utils.project_root(), "models", "hummingbird"))
 def convert_to_onnx_with_hummingbird(
     skl_model, model_name: str, input_dict: typing.Dict[str, numpy.ndarray]
 ) -> typing.Tuple[onnx.ModelProto, str]:
     save_name = f"hummingbird_{model_name}.onnx"
 
-    # TODO(agladyshev): call of hummingbird.ml._topology.convert.fix_graph should be commented
     input_names = list(input_dict.keys())
     onnx_model = hummingbird.ml.convert(
         skl_model,
@@ -114,7 +114,11 @@ def convert_to_onnx_with_hummingbird(
 
 
 def convert_models(
-    target_models: typing.List[str], dataset_generator: typing.Callable
+    convert_function: typing.Callable[
+        [typing.Any, str, typing.Dict[str, numpy.ndarray]], str
+    ],
+    target_models: typing.List[str],
+    dataset_generator: typing.Callable,
 ) -> None:
     # Create dataset
     X, y = dataset_generator(n_samples=10000)
@@ -130,8 +134,7 @@ def convert_models(
         ) as model_file:
             model = pickle.loads(model_file.read())
 
-        model_path = convert_to_onnx_with_skl2onnx(model, model_name, input_dict)
-        model_path = convert_to_onnx_with_hummingbird(model, model_name, input_dict)
+        model_path = convert_function(model, model_name, input_dict)
 
         with utils.common.Profiler("Python sklearn inference", show_latency=True):
             reference_output = [
@@ -143,14 +146,23 @@ def convert_models(
 
 
 def main():
-    convert_models(
-        utils.common.sklearn_classifiers, utils.dataset.get_classification_dataset
-    )
-    convert_models(
-        utils.common.sklearn_regressors, utils.dataset.get_regression_dataset
-    )
-    # TODO(agladyshev): deadlock for skl2onnx?
-    # convert_models(utils.common.outlier_detectors, utils.dataset.get_regression_dataset)
+    for converter in [convert_to_onnx_with_skl2onnx, convert_to_onnx_with_hummingbird]:
+        convert_models(
+            converter,
+            utils.common.sklearn_classifiers,
+            utils.dataset.get_classification_dataset,
+        )
+        convert_models(
+            converter,
+            utils.common.sklearn_regressors,
+            utils.dataset.get_regression_dataset,
+        )
+        # TODO(agladyshev): deadlock for skl2onnx?
+        # convert_models(
+        #     converter,
+        #     utils.common.outlier_detectors,
+        #     utils.dataset.get_regression_dataset,
+        # )
 
 
 if __name__ == "__main__":
