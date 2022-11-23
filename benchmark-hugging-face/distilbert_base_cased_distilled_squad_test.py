@@ -2,10 +2,8 @@ import argparse
 from functools import partial
 
 import onnx
-from transformers import DistilBertTokenizer
 
-from utils import perf_test
-
+from utils import perf_test, get_distilbert_inputs
 
 if __name__ == "__main__":
   class MyFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
@@ -33,22 +31,17 @@ if __name__ == "__main__":
     "Target for model inference")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")
+  parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
+    "Artificially generated inputs. if false the default text from utils is tokenized")
 
   args = parser.parse_args()
 
-  print("Input text: ", args.input_text)
-
-  target = args.target
-  target_host = target
   opt_level = 3
   freeze = True
 
   onnx_model = onnx.load(args.model_path)
 
-  pretrained_weights = 'distilbert-base-cased-distilled-squad'
-
-  tokenizer = DistilBertTokenizer.from_pretrained(pretrained_weights)
-  encoded_inputs = tokenizer(args.input_question, args.input_text, return_tensors='np')
+  encoded_inputs = get_distilbert_inputs(args.artificial_input, args.input_text, "distilbert-base-cased-distilled-squad")
 
   benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-base-cased distilled by SQuAD")
 

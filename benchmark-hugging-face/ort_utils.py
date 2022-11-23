@@ -8,6 +8,6 @@ def ort_test(benchmark_test, model_path, ort_inputs):
   # Run the model on the backend
   ort_session = onnxruntime.InferenceSession(model_path, providers=provider_name)
 
-  ort_runner = partial(ort_session.run, [o.name for o in ort_session.get_outputs()], dict(ort_inputs))
+  ort_runner = partial(ort_session.run, [o.name for o in ort_session.get_outputs()], ort_inputs)
 
   benchmark_test(ort_runner, framework_name = "ONNX Runtime")

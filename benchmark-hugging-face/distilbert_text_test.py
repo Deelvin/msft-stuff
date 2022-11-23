@@ -2,9 +2,8 @@ import argparse
 from functools import partial
 
 import onnx
-from transformers import DistilBertTokenizer
 
-from utils import DISTILBERT_TEST_TEXT, perf_test
+from utils import perf_test, get_distilbert_inputs
 
 
 if __name__ == "__main__":
@@ -19,7 +18,7 @@ if __name__ == "__main__":
   # Model format
   parser.add_argument("-m", "--model_path", default="", type=str, help=\
     "The path to Distilbert-base-cased model in onnx format")
-  parser.add_argument("-i", "--input_text", default=DISTILBERT_TEST_TEXT, type=str, help=\
+  parser.add_argument("-i", "--input_text", default="", type=str, help=\
     "Test input text for Distilbert-base-cased model")
   parser.add_argument("-tvm", action="store_false", default=True, help=\
     "Performance test of TVM")
@@ -29,18 +28,21 @@ if __name__ == "__main__":
     "Target for model inference")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")
+  parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
+    "Artificially generated inputs. if false the default text from utils is tokenized")
 
   args = parser.parse_args()
-
-  print("Input text: ", args.input_text)
 
   opt_level = 3
   freeze = True
 
   onnx_model = onnx.load(args.model_path)
 
-  tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-  encoded_inputs = tokenizer(DISTILBERT_TEST_TEXT, return_tensors='np')
+  encoded_inputs = {}
+  if args.input_text.empty():
+    encoded_inputs = get_distilbert_inputs(args.artificial_input)
+  else:
+    encoded_inputs = get_distilbert_inputs(args.artificial_input, args.input_text)
 
   benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-text")
 

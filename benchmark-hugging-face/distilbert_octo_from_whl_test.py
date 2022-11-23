@@ -2,9 +2,8 @@ import argparse
 from functools import partial
 
 import distilbert
-from transformers import DistilBertTokenizer
 
-from utils import DISTILBERT_TEST_TEXT, perf_test
+from utils import perf_test, get_distilbert_inputs
 
 
 if __name__ == "__main__":
@@ -18,18 +17,23 @@ if __name__ == "__main__":
     formatter_class=MyFormatter
   )
   # Model format
-  parser.add_argument("-i", "--input_text", default=DISTILBERT_TEST_TEXT, type=str, help=\
+  parser.add_argument("-i", "--input_text", default="", type=str, help=\
     "Test input text for Distilbert-base-uncased model")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")
+  parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
+    "Artificially generated inputs. if false the default text from utils is tokenized")
 
   args = parser.parse_args()
 
   benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-by-OctoML")
   best_model = distilbert.OctomizedModel()
 
-  tz = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-  inputs = tz(args.input_text, return_tensors='np')
+  inputs = {}
+  if args.input_text.empty():
+    inputs = get_distilbert_inputs(args.artificial_input)
+  else:
+    inputs = get_distilbert_inputs(args.artificial_input, args.input_text)
 
   octo_runner = partial(best_model.run, *inputs.values())
 

@@ -1,11 +1,10 @@
 import argparse
 
 import onnx
-from transformers import DistilBertTokenizer
 
 from tvm import relay
 
-from utils import DISTILBERT_TEST_TEXT
+from utils import get_distilbert_inputs
 from tvm_utils import tvm_tuning
 
 
@@ -24,13 +23,14 @@ if __name__ == "__main__":
         "Number of iterations of inference for performance measurement")
     parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
         "Target for model inference")
+    parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
+        "Artificially generated inputs. if false the default text from utils is tokenized")
 
     args = parser.parse_args()
 
     onnx_model = onnx.load(args.model_path)
     
-    tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-    encoded_inputs = tokenizer(DISTILBERT_TEST_TEXT, return_tensors='np')
+    encoded_inputs = get_distilbert_inputs(args.artificial_input)
 
     print("----- TVM tuning -----")
     shape_dict = {input_name: input.shape for (input_name, input) in encoded_inputs.items()}

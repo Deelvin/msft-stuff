@@ -102,3 +102,4 @@ def tvm_tuning(mod, target, target_host, params, trials_num, log_file):
     )
 
     tuner.tune(tune_option)
+    print("Tuning finished")
