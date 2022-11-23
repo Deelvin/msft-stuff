@@ -20,6 +20,12 @@ def is_classifier(model_type: typing.Type[typing.Any]) -> bool:
     return model_type in skl2onnx._supported_operators.sklearn_classifier_list
 
 
+def is_anomaly_detector(model_type: typing.Type[typing.Any]) -> bool:
+    import skl2onnx._supported_operators
+
+    return model_type in skl2onnx._supported_operators.outlier_list
+
+
 def check_ort_inference(
     model_path: str,
     input_dict: typing.Dict[str, typing.List[numpy.ndarray]],
@@ -126,6 +132,20 @@ def convert_models(
 
     # Convert models
     for model_name in tqdm.tqdm(target_models):
+        # TODO(agladyshev):
+        #   Out of memory for convert_to_onnx_with_hummingbird-GradientBoostingClassifier
+        if (
+            convert_function == convert_to_onnx_with_hummingbird
+            and model_name == "GradientBoostingClassifier"
+        ):
+            continue
+        # TODO(agladyshev): deadlock for skl2onnx-IsolationForest?
+        if (
+            convert_function == convert_to_onnx_with_skl2onnx
+            and model_name == "IsolationForest"
+        ):
+            continue
+
         with open(
             os.path.join(
                 utils.project_root(), "models", "sklearn", f"{model_name}.sklearn"
@@ -142,6 +162,8 @@ def convert_models(
             ]
             if is_classifier(type(model)):
                 reference_output.append(model.predict_proba(X))
+            if is_anomaly_detector(type(model)):
+                reference_output.append(model.decision_function(X))
         check_ort_inference(model_path, input_dict, reference_output)
 
 
@@ -157,12 +179,11 @@ def main():
             utils.common.sklearn_regressors,
             utils.dataset.get_regression_dataset,
         )
-        # TODO(agladyshev): deadlock for skl2onnx?
-        # convert_models(
-        #     converter,
-        #     utils.common.outlier_detectors,
-        #     utils.dataset.get_regression_dataset,
-        # )
+        convert_models(
+            converter,
+            utils.common.outlier_detectors,
+            utils.dataset.get_regression_dataset,
+        )
 
 
 if __name__ == "__main__":
