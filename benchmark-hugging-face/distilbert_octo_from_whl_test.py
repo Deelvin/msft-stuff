@@ -30,7 +30,7 @@ if __name__ == "__main__":
   best_model = distilbert.OctomizedModel()
 
   inputs = {}
-  if args.input_text.empty():
+  if args.input_text == "":
     inputs = get_distilbert_inputs(args.artificial_input)
   else:
     inputs = get_distilbert_inputs(args.artificial_input, args.input_text)

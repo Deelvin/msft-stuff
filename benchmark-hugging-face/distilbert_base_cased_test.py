@@ -34,8 +34,6 @@ if __name__ == "__main__":
 
   args = parser.parse_args()
 
-  print("Input text: ", args.input_text)
-
   opt_level = 3
   freeze = True
 

@@ -39,7 +39,7 @@ if __name__ == "__main__":
   onnx_model = onnx.load(args.model_path)
 
   encoded_inputs = {}
-  if args.input_text.empty():
+  if args.input_text == "":
     encoded_inputs = get_distilbert_inputs(args.artificial_input)
   else:
     encoded_inputs = get_distilbert_inputs(args.artificial_input, args.input_text)
