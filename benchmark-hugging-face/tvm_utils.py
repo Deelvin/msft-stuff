@@ -84,3 +84,21 @@ def tvm_test(benchmark_test, onnx_model, inputs, opt_level, target, target_host,
   m.set_input("main", **tvm_inputs)
   tvm_runner = partial(m.invoke, "main")
   benchmark_test(tvm_runner, framework_name = "TVM")
+
+def tvm_tuning(mod, target, target_host, params, trials_num, log_file):
+        # extract workloads from relay program
+    print("Extract tasks...")
+    tasks, task_weights = auto_scheduler.extract_tasks(mod["main"], params, target=target, target_host=target_host)
+    for idx, task in enumerate(tasks):
+        print("========== Task %d  (workload key: %s) ==========" % (idx, task.workload_key))
+        print(task.compute_dag)
+
+    print("Begin tuning...")
+    tuner = auto_scheduler.TaskScheduler(tasks, task_weights)
+    tune_option = auto_scheduler.TuningOptions(
+        num_measure_trials=trials_num,  # change this to 20000 to achieve the best performance
+        runner=auto_scheduler.LocalRunner(repeat=10, enable_cpu_cache_flush=True),
+        measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
+    )
+
+    tuner.tune(tune_option)
