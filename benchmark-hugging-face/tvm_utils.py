@@ -19,15 +19,17 @@ def get_vm_lib(irmod, target, target_host, params):
 
 ANSOR_TYPE = "Ansor"
 AUTO_TVM_TYPE = "AutoTVM"
+META_TYPE = "Meta"
 def get_tvm_vm(mod,
                opt_level,
                target,
                target_host,
                params,
                dev,
-               nhwc = False,
-               tuning_logfile = "",
-               tuning_type = ANSOR_TYPE):
+               nhwc=False,
+               tuning_logfile="",
+               tuning_type=ANSOR_TYPE,
+              ):
   if tuning_logfile == "":
     tuning_logfile = os.getenv("AUTOTVM_TUNING_LOG")
   lib = None
@@ -70,7 +72,15 @@ def get_tvm_vm(mod,
 
   return tvm_rt_vm.VirtualMachine(lib, dev)
 
-def tvm_test(benchmark_test, onnx_model, inputs, opt_level, target, target_host, freeze=True):
+def tvm_test(
+      benchmark_test,
+      onnx_model,
+      inputs,
+      opt_level,
+      target,
+      target_host,
+      freeze=True,
+      tuning_logs=""):
   print("----- TVM testing -----")
   shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
   mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
@@ -80,7 +90,15 @@ def tvm_test(benchmark_test, onnx_model, inputs, opt_level, target, target_host,
 
   dev = tvm.device(str(target), 0)
 
-  m = get_tvm_vm(mod, opt_level, target, target_host, params, dev)
+  m = get_tvm_vm(
+        mod,
+        opt_level,
+        target,
+        target_host,
+        params,
+        dev,
+        tuning_logfile=tuning_logs,
+      )
   m.set_input("main", **tvm_inputs)
   tvm_runner = partial(m.invoke, "main")
   benchmark_test(tvm_runner, framework_name = "TVM")

@@ -28,6 +28,8 @@ if __name__ == "__main__":
     "Target for model inference")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")
+  parser.add_argument("-tu", "--tuning_logs", default="", type=str, help=\
+    "The path to tuning logs")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
     "Artificially generated inputs. if false the default text from utils is tokenized")
 
@@ -48,7 +50,16 @@ if __name__ == "__main__":
 
   if args.tvm:
     from tvm_utils import tvm_test
-    tvm_test(benchmark_test, onnx_model, encoded_inputs, opt_level, args.target, args.target, freeze)
+    tvm_test(
+      benchmark_test,
+      onnx_model,
+      encoded_inputs,
+      opt_level,
+      args.target,
+      args.target,
+      freeze,
+      args.tuning_logs
+    )
 
   if args.ort:
     from ort_utils import ort_test
