@@ -37,6 +37,7 @@ if __name__ == "__main__":
   print("----- TVM tuning -----")
   shape_dict = {input_name: input.shape for (input_name, input) in encoded_inputs.items()}
   mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=True)
+  mod = relay.transform.DynamicToStatic()(mod)
 
   log_file_name = args.model_path.replace(".onnx","") + "_tuned.json"
 
