@@ -14,35 +14,6 @@ import utils.common
 import utils.dataset
 
 
-def is_classifier(model_type: typing.Type[typing.Any]) -> bool:
-    import skl2onnx._supported_operators
-
-    return model_type in skl2onnx._supported_operators.sklearn_classifier_list
-
-
-def is_anomaly_detector(model_type: typing.Type[typing.Any]) -> bool:
-    import skl2onnx._supported_operators
-
-    return model_type in skl2onnx._supported_operators.outlier_list
-
-
-def check_ort_inference(
-    model_path: str,
-    input_dict: typing.Dict[str, typing.List[numpy.ndarray]],
-    reference_output: typing.List[numpy.ndarray],
-) -> None:
-    engine = onnxruntime.InferenceSession(model_path)
-    with utils.common.Profiler("ONNX Runtime inference", show_latency=True):
-        ort_output = engine.run(None, input_dict)
-
-    assert len(reference_output) == len(ort_output)
-    for reference, ort in zip(reference_output, ort_output):
-        if "int" not in str(reference.dtype):
-            numpy.testing.assert_allclose(
-                reference, ort.reshape(reference.shape), rtol=1.0e-4, atol=1.0e-4
-            )
-
-
 class SaveONNX:
     def __init__(self, save_root: str):
         self.save_root = save_root
@@ -64,6 +35,35 @@ class SaveONNX:
             return save_path
 
         return wrapper
+
+
+def check_ort_inference(
+    model_path: str,
+    input_dict: typing.Dict[str, typing.List[numpy.ndarray]],
+    reference_output: typing.List[numpy.ndarray],
+) -> None:
+    engine = onnxruntime.InferenceSession(model_path)
+    with utils.common.Profiler("ONNX Runtime inference", show_latency=True):
+        ort_output = engine.run(None, input_dict)
+
+    assert len(reference_output) == len(ort_output)
+    for reference, ort in zip(reference_output, ort_output):
+        if "int" not in str(reference.dtype):
+            numpy.testing.assert_allclose(
+                reference, ort.reshape(reference.shape), rtol=1.0e-4, atol=1.0e-4
+            )
+
+
+def is_classifier(model_type: typing.Type[typing.Any]) -> bool:
+    import skl2onnx._supported_operators
+
+    return model_type in skl2onnx._supported_operators.sklearn_classifier_list
+
+
+def is_anomaly_detector(model_type: typing.Type[typing.Any]) -> bool:
+    import skl2onnx._supported_operators
+
+    return model_type in skl2onnx._supported_operators.outlier_list
 
 
 @SaveONNX(save_root=os.path.join(utils.project_root(), "models", "skl2onnx"))

@@ -39,6 +39,7 @@ pandas==1.5.1
 pathspec==0.10.2
 Pillow==9.3.0
 platformdirs==2.5.4
+plotly==5.11.0
 prophet==1.1
 protobuf==3.20.1
 psutil==5.9.4
@@ -54,9 +55,12 @@ setuptools-git==1.2
 six==1.16.0
 skl2onnx==1.13
 sympy==1.11.1
+tenacity==8.1.0
 threadpoolctl==3.1.0
 tomli==2.0.1
 torch==1.13.0
 tqdm==4.64.1
+treelite==3.0.0
+treelite-runtime==3.0.0
 typing-extensions==4.4.0
 xgboost==1.7.1
