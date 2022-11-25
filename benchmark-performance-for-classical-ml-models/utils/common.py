@@ -1,4 +1,9 @@
+import os
+import pickle
 import time
+import typing
+
+import onnx
 
 sklearn_classifiers = [
     "RandomForestClassifier",
@@ -37,3 +42,45 @@ class Profiler:
                     self.iterations_number,
                 )
             )
+
+
+class ModelSaver:
+    def __init__(self, save_root: str):
+        self.save_root = save_root
+
+    def __call__(
+        self,
+        convert_func: typing.Callable[..., typing.Tuple[typing.Any, str]],
+    ):
+        def wrapper(*args, **kwargs) -> str:
+            if not os.path.exists(self.save_root):
+                os.makedirs(self.save_root)
+
+            model, save_name = convert_func(*args, **kwargs)
+
+            save_path = os.path.join(self.save_root, save_name)
+            with open(save_path, "wb") as f:
+                f.write(self._serialize_model(model))
+
+            return save_path
+
+        return wrapper
+
+    def _serialize_model(self, model: typing.Any) -> bytes:
+        raise NotImplementedError("ModelSaver is abstract class")
+
+
+class SaveSKLearn(ModelSaver):
+    def __init__(self, save_root: str):
+        super().__init__(save_root)
+
+    def _serialize_model(self, model: typing.Any) -> bytes:
+        return pickle.dumps(model)
+
+
+class SaveONNX(ModelSaver):
+    def __init__(self, save_root: str):
+        super().__init__(save_root)
+
+    def _serialize_model(self, model: onnx.ModelProto) -> bytes:
+        return model.SerializeToString()
