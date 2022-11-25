@@ -9,14 +9,20 @@ import utils.common
 import utils.dataset
 
 
-@utils.common.SaveSKLearn(
+@utils.common.sklearn_saver(
     save_root=os.path.join(utils.project_root(), "models", "sklearn")
 )
 def create_sklearn_model(
     model_name: str, dataset: typing.Tuple[numpy.ndarray, numpy.ndarray]
 ) -> typing.Tuple[typing.Any, str]:
     save_name = f"{model_name}.sklearn"
-    model = getattr(sklearn.ensemble, model_name)(n_estimators=1000, random_state=47)
+    kwargs = {}
+    if "GradientBoosting" not in model_name:
+        # TODO(agladyshev): hardcoded value.
+        kwargs["n_jobs"] = 16
+    model = getattr(sklearn.ensemble, model_name)(
+        n_estimators=1000, random_state=47, **kwargs
+    )
     model.fit(*dataset)
 
     return model, save_name

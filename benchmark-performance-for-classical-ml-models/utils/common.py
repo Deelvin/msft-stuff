@@ -3,7 +3,9 @@ import pickle
 import time
 import typing
 
+import decorator
 import onnx
+import treelite
 
 sklearn_classifiers = [
     "RandomForestClassifier",
@@ -44,43 +46,50 @@ class Profiler:
             )
 
 
-class ModelSaver:
-    def __init__(self, save_root: str):
-        self.save_root = save_root
+def model_saver(
+    save_root: str, save_function: typing.Callable[[typing.Any, str], None]
+):
+    @decorator.decorator
+    def wrapper(
+        model_factory: typing.Callable[..., typing.Tuple[typing.Any, str]],
+        *args,
+        **kwargs
+    ) -> str:
+        if not os.path.exists(save_root):
+            os.makedirs(save_root)
 
-    def __call__(
-        self,
-        convert_func: typing.Callable[..., typing.Tuple[typing.Any, str]],
-    ):
-        def wrapper(*args, **kwargs) -> str:
-            if not os.path.exists(self.save_root):
-                os.makedirs(self.save_root)
+        model, save_name = model_factory(*args, **kwargs)
+        save_path = os.path.join(save_root, save_name)
+        save_function(model, save_path)
 
-            model, save_name = convert_func(*args, **kwargs)
+        return save_path
 
-            save_path = os.path.join(self.save_root, save_name)
-            with open(save_path, "wb") as f:
-                f.write(self._serialize_model(model))
-
-            return save_path
-
-        return wrapper
-
-    def _serialize_model(self, model: typing.Any) -> bytes:
-        raise NotImplementedError("ModelSaver is abstract class")
+    return wrapper
 
 
-class SaveSKLearn(ModelSaver):
-    def __init__(self, save_root: str):
-        super().__init__(save_root)
+def sklearn_saver(save_root: str):
+    def save_to_file(model: typing.Any, save_path: str) -> None:
+        with open(save_path, "wb") as f:
+            f.write(pickle.dumps(model))
 
-    def _serialize_model(self, model: typing.Any) -> bytes:
-        return pickle.dumps(model)
+    return model_saver(save_root, save_to_file)
 
 
-class SaveONNX(ModelSaver):
-    def __init__(self, save_root: str):
-        super().__init__(save_root)
+def onnx_saver(save_root: str):
+    def save_to_file(model: onnx.ModelProto, save_path: str) -> None:
+        with open(save_path, "wb") as f:
+            f.write(model.SerializeToString())
 
-    def _serialize_model(self, model: onnx.ModelProto) -> bytes:
-        return model.SerializeToString()
+    return model_saver(save_root, save_to_file)
+
+
+def treelite_saver(save_root: str):
+    def save_to_file(model: treelite.frontend.Model, save_path: str) -> None:
+        model.export_lib(
+            libpath=save_path,
+            toolchain="gcc",
+            verbose=True,
+            params=dict(parallel_comp=4),
+        )
+
+    return model_saver(save_root, save_to_file)
