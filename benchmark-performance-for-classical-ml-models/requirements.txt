@@ -63,5 +63,6 @@ torch==1.13.0
 tqdm==4.64.1
 treelite==3.0.0
 treelite-runtime==3.0.0
+types-decorator==5.1.8.1
 typing-extensions==4.4.0
 xgboost==1.7.1
