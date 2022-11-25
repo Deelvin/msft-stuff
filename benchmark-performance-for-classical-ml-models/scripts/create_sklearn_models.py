@@ -16,10 +16,8 @@ def create_sklearn_model(
     model_name: str, dataset: typing.Tuple[numpy.ndarray, numpy.ndarray]
 ) -> typing.Tuple[typing.Any, str]:
     save_name = f"{model_name}.sklearn"
-    X, y = dataset
-
     model = getattr(sklearn.ensemble, model_name)(n_estimators=1000, random_state=47)
-    model.fit(X, y)
+    model.fit(*dataset)
 
     return model, save_name
 
