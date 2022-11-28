@@ -1,7 +1,9 @@
 import argparse
+from pathlib import Path
 
 import onnx
 
+import tvm
 from tvm import relay
 
 from utils import get_distilbert_inputs
@@ -39,20 +41,28 @@ if __name__ == "__main__":
   mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=True)
   mod = relay.transform.DynamicToStatic()(mod)
 
-  log_file_name = args.model_path.replace(".onnx","") + "_tuned.json"
+  model_path = Path(args.model_path)
+  model_name = model_path.stem
+  log_dir = model_path.parent
 
   if args.meta:
-    # Model tuning by tvm autoscheduler
+    # Model tuning by tvm meta-scheduler
     tvm_meta_tuning(
-      log_file = log_file_name,
+      mod,
+      params,
+      tvm.target.Target(args.target),
+      trials_num=args.trials_number,
+      log_dir=log_dir,
+      model_name=model_name,
     )
   else:
-    # Model tuning by tvm autoscheduler
+    # Model tuning by tvm auto-scheduler
     tvm_ansor_tuning(
       mod,
       args.target,
       args.target,
       params,
-      trials_num = args.trials_number,
-      log_file = log_file_name,
+      trials_num=args.trials_number,
+      log_dir=log_dir,
+      model_name=model_name,
     )
