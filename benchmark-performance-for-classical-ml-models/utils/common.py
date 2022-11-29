@@ -20,8 +20,23 @@ sklearn_regressors = [
     "GradientBoostingRegressor",
 ]
 
-outlier_detectors = [
+sklearn_outlier_detectors = [
     "IsolationForest",
+]
+
+
+xgboost_classifiers = [
+    "XGBClassifier",
+]
+
+
+xgboost_regressors = [
+    "XGBRegressor",
+]
+
+
+xgboost_rankers = [
+    "XGBRanker",
 ]
 
 
@@ -67,10 +82,21 @@ def model_saver(
     return wrapper
 
 
-def sklearn_saver(save_root: str):
+def pickle_saver(save_root: str):
     def save_to_file(model: typing.Any, save_path: str) -> None:
         with open(save_path, "wb") as f:
             f.write(pickle.dumps(model))
+
+    return model_saver(save_root, save_to_file)
+
+
+def sklearn_saver(save_root: str):
+    return pickle_saver(save_root)
+
+
+def xgboost_saver(save_root: str):
+    def save_to_file(model: typing.Any, save_path: str) -> None:
+        model.save_model(save_path)
 
     return model_saver(save_root, save_to_file)
 

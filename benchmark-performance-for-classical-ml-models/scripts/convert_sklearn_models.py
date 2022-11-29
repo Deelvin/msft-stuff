@@ -243,7 +243,7 @@ def main():
             inference_function,
         )
         convert_models(
-            utils.common.outlier_detectors,
+            utils.common.sklearn_outlier_detectors,
             convert_function,
             utils.dataset.get_regression_dataset,
             inference_function,

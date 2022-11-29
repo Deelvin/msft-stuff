@@ -45,7 +45,7 @@ def main():
         utils.common.sklearn_regressors, utils.dataset.get_regression_dataset
     )
     serialize_models(
-        utils.common.outlier_detectors, utils.dataset.get_regression_dataset
+        utils.common.sklearn_outlier_detectors, utils.dataset.get_regression_dataset
     )
 
 
