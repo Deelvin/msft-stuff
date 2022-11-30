@@ -126,7 +126,74 @@ def tvm_ansor_tuning(mod, target, target_host, params, trials_num, log_dir, mode
   tuner.tune(tune_option)
   print("Tuning finished")
 
-def tvm_meta_tuning(mod, params, target, trials_num, log_dir, model_name):
+def tune_relay_with_task_extractor(
+      mod,
+      target,
+      params,
+      database,
+      module_equality,
+      trials_num = 20000,
+      max_trials_per_task=8,
+      num_trials_per_iter=8,
+      strategy="replay-trace",  # TODO(vvchernov): "evolutionary",
+      extracted_task_indices=[],
+    ):
+  space = "post-order-apply"
+  seed = None
+  builder = "local"
+  runner = "local"
+  cost_model = "xgb"
+  measure_callbacks = "default"
+  task_scheduler = "gradient"
+  with tempfile.TemporaryDirectory() as work_dir:
+    tasks, task_weights = ms.relay_integration.extracted_tasks_to_tune_contexts(
+      extracted_tasks=ms.relay_integration.extract_tasks(
+                        mod,
+                        target,
+                        params,
+                        module_equality=module_equality),
+      work_dir=work_dir,
+      space=space,
+      strategy=strategy,
+      seed=seed,
+    )
+
+    filtered_tasks=[]
+    filtered_task_weights=[]
+    if extracted_task_indices:
+      filtered_tasks = [tasks[i] for i in extracted_task_indices]
+      filtered_task_weights = [task_weights[i] for i in extracted_task_indices]
+    else:
+      filtered_tasks = tasks
+      filtered_task_weights = task_weights
+
+    ms.relay_integration.tune_tasks(
+        tasks=filtered_tasks,
+        task_weights=filtered_task_weights,
+        work_dir=work_dir,
+        max_trials_global=trials_num,
+        max_trials_per_task=max_trials_per_task,
+        num_trials_per_iter=num_trials_per_iter,
+        builder=builder,
+        runner=runner,
+        database=database,
+        cost_model=cost_model,
+        measure_callbacks=measure_callbacks,
+        task_scheduler=task_scheduler,
+        module_equality=module_equality,
+    )
+
+def tvm_meta_tuning(
+      mod,
+      params,
+      target,
+      trials_num,
+      log_dir,
+      model_name,
+      task_indices=[],
+    ):
+  # Without this, the same workloads with different constant weights
+  # are treated as distinct tuning tasks.
   module_equality="ignore-ndarray"
   workload_path = str(log_dir.joinpath( model_name + "_workload.json"))
   record_path = str(log_dir.joinpath( model_name + "_records.json"))
@@ -143,22 +210,15 @@ def tvm_meta_tuning(mod, params, target, trials_num, log_dir, model_name):
     module_equality=module_equality,
   )
   print("Begin meta-scheduler tuning...")
-  with tempfile.TemporaryDirectory() as work_dir:
-    database = ms.relay_integration.tune_relay(
-      mod=mod,
-      target=target,
-      params=params,
-      work_dir=work_dir,
-      # for faster tuning
-      max_trials_global=trials_num,
-      max_trials_per_task=8,
-      num_trials_per_iter=8,
-      strategy="replay-trace",  # TODO(vvchernov): "evolutionary",
-      database=database,
-      # Without this, the same workloads with different constant weights
-      # are treated as distinct tuning tasks.
-      module_equality=module_equality,
-    )
+  tune_relay_with_task_extractor(
+    mod=mod,
+    target=target,
+    params=params,
+    database=database,
+    module_equality=module_equality,
+    trials_num=trials_num,
+    extracted_task_indices=task_indices,
+  )
 
   # vm_lib = ms.relay_integration.compile_relay(
   #   database=database,

@@ -29,6 +29,8 @@ if __name__ == "__main__":
     "Artificially generated inputs. if false the default text from utils is tokenized")
   parser.add_argument("--meta", action="store_true", default=False, help=\
     "Switch on meta scheduler, by default it is auto scheduler")
+  parser.add_argument("-e", "--extracted_task_indices", nargs="*", type=int, default=[], help=\
+    "Indices of task which should be extracted form the model for tuning. Need for effective debugging")
 
   args = parser.parse_args()
 
@@ -54,6 +56,7 @@ if __name__ == "__main__":
       trials_num=args.trials_number,
       log_dir=log_dir,
       model_name=model_name,
+      task_indices=args.extracted_task_indices,
     )
   else:
     # Model tuning by tvm auto-scheduler
