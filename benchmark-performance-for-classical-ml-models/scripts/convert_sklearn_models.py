@@ -29,29 +29,6 @@ def get_sklearn_output(
     return reference_output
 
 
-def get_ort_output(
-    model_path: str, input_dict: typing.Dict[str, numpy.ndarray]
-) -> typing.List[numpy.ndarray]:
-    engine = utils.load.load_onnxruntime(model_path)
-    runner = utils.inference.ort_inference_runner(engine)
-
-    with utils.common.Profiler("ONNX Runtime inference", show_latency=True):
-        ort_output = runner(input_dict)
-    return ort_output
-
-
-def get_treelite_output(
-    model_path: str, input_dict: typing.Dict[str, numpy.ndarray]
-) -> typing.List[numpy.ndarray]:
-    engine = utils.load.load_treelite(model_path)
-    runner = utils.inference.treelite_inference_runner(engine)
-
-    with utils.common.Profiler("Treelite inference", show_latency=True):
-        treelite_output = runner(*input_dict.values())
-
-    return treelite_output
-
-
 @utils.save.onnx_saver(
     save_root=os.path.join(utils.project_root(), "models", "skl2onnx")
 )
@@ -87,12 +64,12 @@ def convert_to_onnx_with_skl2onnx(
 
 # TODO(agladyshev): call of hummingbird.ml._topology.convert.fix_graph should be commented
 @utils.save.onnx_saver(
-    save_root=os.path.join(utils.project_root(), "models", "hummingbird")
+    save_root=os.path.join(utils.project_root(), "models", "hummingbird_sklearn")
 )
 def convert_to_onnx_with_hummingbird(
     skl_model, model_name: str, input_dict: typing.Dict[str, numpy.ndarray]
 ) -> typing.Tuple[onnx.ModelProto, str]:
-    save_name = f"hummingbird_{model_name}.onnx"
+    save_name = f"hummingbird_sklearn_{model_name}.onnx"
 
     input_names = list(input_dict.keys())
     onnx_model = hummingbird.ml.convert(
@@ -193,7 +170,10 @@ def convert_models(
 
         # TODO(agladyshev):
         #   Treelite doesn't provide predict method in sklearn-style for classifiers
-        if inference_function == get_treelite_output and len(reference_output) == 2:
+        if (
+            inference_function == utils.common.get_treelite_output
+            and len(reference_output) == 2
+        ):
             reference_output = [reference_output[1]]
 
         utils.common.output_comparer(reference_output, engine_output)
@@ -201,9 +181,9 @@ def convert_models(
 
 def main():
     for convert_function, inference_function in [
-        (convert_to_onnx_with_skl2onnx, get_ort_output),
-        (convert_to_onnx_with_hummingbird, get_ort_output),
-        (convert_to_treelite, get_treelite_output),
+        (convert_to_onnx_with_skl2onnx, utils.common.get_ort_output),
+        (convert_to_onnx_with_hummingbird, utils.common.get_ort_output),
+        (convert_to_treelite, utils.common.get_treelite_output),
     ]:
         convert_models(
             utils.common.sklearn_classifiers,

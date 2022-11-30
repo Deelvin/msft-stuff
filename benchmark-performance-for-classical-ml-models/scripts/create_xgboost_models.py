@@ -16,7 +16,7 @@ import utils.save
 def create_xgboost_model(
     model_name: str, dataset: typing.Tuple[numpy.ndarray, numpy.ndarray]
 ) -> typing.Tuple[typing.Any, str]:
-    save_name = f"{model_name}.json"
+    save_name = f"{model_name}.xgboost"
     kwargs = {}
     if "Rank" in model_name:
         kwargs["qid"] = utils.dataset.get_qid(dataset[0].shape[0])

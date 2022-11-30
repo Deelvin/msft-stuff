@@ -41,10 +41,7 @@ def sklearn_saver(save_root: str):
 
 
 def xgboost_saver(save_root: str):
-    def save_to_file(model: typing.Any, save_path: str) -> None:
-        model.save_model(save_path)
-
-    return model_saver(save_root, save_to_file)
+    return pickle_saver(save_root)
 
 
 def onnx_saver(save_root: str):

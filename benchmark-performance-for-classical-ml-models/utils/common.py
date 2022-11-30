@@ -3,6 +3,9 @@ import typing
 
 import numpy
 
+import utils.inference
+import utils.load
+
 sklearn_classifiers = [
     "RandomForestClassifier",
     "ExtraTreesClassifier",
@@ -76,3 +79,26 @@ def is_sklearn_anomaly_detector(model_type: typing.Type[typing.Any]) -> bool:
     import skl2onnx._supported_operators
 
     return model_type in skl2onnx._supported_operators.outlier_list
+
+
+def get_ort_output(
+    model_path: str, input_dict: typing.Dict[str, numpy.ndarray]
+) -> typing.List[numpy.ndarray]:
+    engine = utils.load.load_onnxruntime(model_path)
+    runner = utils.inference.ort_inference_runner(engine)
+
+    with utils.common.Profiler("ONNX Runtime inference", show_latency=True):
+        ort_output = runner(input_dict)
+    return ort_output
+
+
+def get_treelite_output(
+    model_path: str, input_dict: typing.Dict[str, numpy.ndarray]
+) -> typing.List[numpy.ndarray]:
+    engine = utils.load.load_treelite(model_path)
+    runner = utils.inference.treelite_inference_runner(engine)
+
+    with utils.common.Profiler("Treelite inference", show_latency=True):
+        treelite_output = runner(*input_dict.values())
+
+    return treelite_output

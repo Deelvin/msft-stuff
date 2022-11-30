@@ -3,6 +3,7 @@ import typing
 import numpy
 import onnxruntime
 import treelite_runtime
+import xgboost
 
 import utils.common
 
@@ -41,6 +42,32 @@ def sklearn_inference_runner(
             return anomaly_detector_inference_treelite_style
     else:  # Regressor
         return regressor_inference
+
+
+def xgboost_inference_runner(engine: typing.Any) -> typing.Callable:
+    def classifier_inference_runner(
+        numpy_input: numpy.ndarray,
+    ) -> typing.List[numpy.ndarray]:
+        return [engine.predict(numpy_input), engine.predict_proba(numpy_input)]
+
+    def regressor_inference_runner(
+        numpy_input: numpy.ndarray,
+    ) -> typing.List[numpy.ndarray]:
+        return [engine.predict(numpy_input)]
+
+    def ranker_inference_runner(
+        numpy_input: numpy.ndarray,
+    ) -> typing.List[numpy.ndarray]:
+        return [engine.predict(numpy_input)]
+
+    if type(engine) == xgboost.XGBClassifier:
+        return classifier_inference_runner
+    elif type(engine) == xgboost.XGBRegressor:
+        return regressor_inference_runner
+    elif type(engine) == xgboost.XGBRanker:
+        return ranker_inference_runner
+    else:
+        raise ValueError(f"Unsupported engine {engine}")
 
 
 def ort_inference_runner(engine: onnxruntime.InferenceSession) -> typing.Callable:
