@@ -1,11 +1,7 @@
-import os
-import pickle
 import time
 import typing
 
-import decorator
-import onnx
-import treelite
+import numpy
 
 sklearn_classifiers = [
     "RandomForestClassifier",
@@ -61,61 +57,22 @@ class Profiler:
             )
 
 
-def model_saver(
-    save_root: str, save_function: typing.Callable[[typing.Any, str], None]
-):
-    @decorator.decorator
-    def wrapper(
-        model_factory: typing.Callable[..., typing.Tuple[typing.Any, str]],
-        *args,
-        **kwargs
-    ) -> str:
-        if not os.path.exists(save_root):
-            os.makedirs(save_root)
-
-        model, save_name = model_factory(*args, **kwargs)
-        save_path = os.path.join(save_root, save_name)
-        save_function(model, save_path)
-
-        return save_path
-
-    return wrapper
+def output_comparer(reference_output, engine_output) -> None:
+    assert len(reference_output) == len(engine_output)
+    for reference, engine in zip(reference_output, engine_output):
+        if "int" not in str(reference.dtype):
+            numpy.testing.assert_allclose(
+                reference, engine.reshape(reference.shape), rtol=1.0e-2, atol=1.0e-2
+            )
 
 
-def pickle_saver(save_root: str):
-    def save_to_file(model: typing.Any, save_path: str) -> None:
-        with open(save_path, "wb") as f:
-            f.write(pickle.dumps(model))
+def is_sklearn_classifier(model_type: typing.Type[typing.Any]) -> bool:
+    import skl2onnx._supported_operators
 
-    return model_saver(save_root, save_to_file)
+    return model_type in skl2onnx._supported_operators.sklearn_classifier_list
 
 
-def sklearn_saver(save_root: str):
-    return pickle_saver(save_root)
+def is_sklearn_anomaly_detector(model_type: typing.Type[typing.Any]) -> bool:
+    import skl2onnx._supported_operators
 
-
-def xgboost_saver(save_root: str):
-    def save_to_file(model: typing.Any, save_path: str) -> None:
-        model.save_model(save_path)
-
-    return model_saver(save_root, save_to_file)
-
-
-def onnx_saver(save_root: str):
-    def save_to_file(model: onnx.ModelProto, save_path: str) -> None:
-        with open(save_path, "wb") as f:
-            f.write(model.SerializeToString())
-
-    return model_saver(save_root, save_to_file)
-
-
-def treelite_saver(save_root: str):
-    def save_to_file(model: treelite.frontend.Model, save_path: str) -> None:
-        model.export_lib(
-            libpath=save_path,
-            toolchain="gcc",
-            verbose=True,
-            params=dict(parallel_comp=4),
-        )
-
-    return model_saver(save_root, save_to_file)
+    return model_type in skl2onnx._supported_operators.outlier_list

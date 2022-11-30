@@ -7,9 +7,10 @@ import tqdm
 
 import utils.common
 import utils.dataset
+import utils.save
 
 
-@utils.common.sklearn_saver(
+@utils.save.sklearn_saver(
     save_root=os.path.join(utils.project_root(), "models", "sklearn")
 )
 def create_sklearn_model(

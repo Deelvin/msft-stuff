@@ -1,75 +1,58 @@
 import os
-import pickle
 import typing
 
 import hummingbird.ml
 import numpy
 import numpy.testing
 import onnx
-import onnxruntime
 import skl2onnx
 import tqdm
 import treelite
-import treelite_runtime
 
 import utils.common
 import utils.dataset
-
-
-def is_classifier(model_type: typing.Type[typing.Any]) -> bool:
-    import skl2onnx._supported_operators
-
-    return model_type in skl2onnx._supported_operators.sklearn_classifier_list
-
-
-def is_anomaly_detector(model_type: typing.Type[typing.Any]) -> bool:
-    import skl2onnx._supported_operators
-
-    return model_type in skl2onnx._supported_operators.outlier_list
+import utils.inference
+import utils.load
+import utils.save
 
 
 def get_sklearn_output(
-    model: typing.Any,
-    X: numpy.ndarray,
+    model_path: str,
+    input_dict: typing.Dict[str, numpy.ndarray],
     use_decision_function=True,
 ) -> typing.List[numpy.ndarray]:
+    engine = utils.load.load_sklearn(model_path)
+    runner = utils.inference.sklearn_inference_runner(engine, use_decision_function)
+
     with utils.common.Profiler("Python sklearn inference", show_latency=True):
-        reference_output = [
-            model.predict(X),
-        ]
-        if is_classifier(type(model)):
-            reference_output.append(model.predict_proba(X))
-        if is_anomaly_detector(type(model)):
-            if use_decision_function:
-                reference_output.append(model.decision_function(X))
-            else:
-                reference_output.append(-model.score_samples(X))
+        reference_output = runner(*input_dict.values())
     return reference_output
 
 
 def get_ort_output(
     model_path: str, input_dict: typing.Dict[str, numpy.ndarray]
 ) -> typing.List[numpy.ndarray]:
-    engine = onnxruntime.InferenceSession(model_path)
+    engine = utils.load.load_onnxruntime(model_path)
+    runner = utils.inference.ort_inference_runner(engine)
+
     with utils.common.Profiler("ONNX Runtime inference", show_latency=True):
-        ort_output = engine.run(None, input_dict)
+        ort_output = runner(input_dict)
     return ort_output
 
 
 def get_treelite_output(
     model_path: str, input_dict: typing.Dict[str, numpy.ndarray]
 ) -> typing.List[numpy.ndarray]:
-    engine = treelite_runtime.Predictor(libpath=model_path)
-    numpy_input = list(input_dict.values())[0]
+    engine = utils.load.load_treelite(model_path)
+    runner = utils.inference.treelite_inference_runner(engine)
+
     with utils.common.Profiler("Treelite inference", show_latency=True):
-        input_data = treelite_runtime.DMatrix(numpy_input)
-        treelite_output_probability = engine.predict(input_data, verbose=True)
-        treelite_output = [treelite_output_probability]
+        treelite_output = runner(*input_dict.values())
 
     return treelite_output
 
 
-@utils.common.onnx_saver(
+@utils.save.onnx_saver(
     save_root=os.path.join(utils.project_root(), "models", "skl2onnx")
 )
 def convert_to_onnx_with_skl2onnx(
@@ -95,7 +78,7 @@ def convert_to_onnx_with_skl2onnx(
         skl_model,
         initial_types=initial_type,
         options={id(skl_model): {"zipmap": False}}
-        if is_classifier(type(skl_model))
+        if utils.common.is_sklearn_classifier(type(skl_model))
         else None,
     )
 
@@ -103,7 +86,7 @@ def convert_to_onnx_with_skl2onnx(
 
 
 # TODO(agladyshev): call of hummingbird.ml._topology.convert.fix_graph should be commented
-@utils.common.onnx_saver(
+@utils.save.onnx_saver(
     save_root=os.path.join(utils.project_root(), "models", "hummingbird")
 )
 def convert_to_onnx_with_hummingbird(
@@ -126,7 +109,7 @@ def convert_to_onnx_with_hummingbird(
     return onnx_model, save_name
 
 
-@utils.common.treelite_saver(
+@utils.save.treelite_saver(
     save_root=os.path.join(utils.project_root(), "models", "treelite")
 )
 def convert_to_treelite(
@@ -175,20 +158,17 @@ def convert_models(
         if convert_function == convert_to_treelite and "GradientBoosting" in model_name:
             continue
 
-        with open(
-            os.path.join(
-                utils.project_root(), "models", "sklearn", f"{model_name}.sklearn"
-            ),
-            "rb",
-        ) as model_file:
-            skl_model = pickle.loads(model_file.read())
+        skl_model_path = os.path.join(
+            utils.project_root(), "models", "sklearn", f"{model_name}.sklearn"
+        )
+        skl_model = utils.load.load_sklearn(skl_model_path)
 
         # Convert models
         model_path = convert_function(skl_model, model_name, input_dict)
 
         # Check inference output
         reference_output = get_sklearn_output(
-            skl_model, X, convert_function != convert_to_treelite
+            skl_model_path, input_dict, convert_function != convert_to_treelite
         )
         engine_output = inference_function(model_path, input_dict)
 
@@ -216,12 +196,7 @@ def convert_models(
         if inference_function == get_treelite_output and len(reference_output) == 2:
             reference_output = [reference_output[1]]
 
-        assert len(reference_output) == len(engine_output)
-        for reference, engine in zip(reference_output, engine_output):
-            if "int" not in str(reference.dtype):
-                numpy.testing.assert_allclose(
-                    reference, engine.reshape(reference.shape), rtol=1.0e-2, atol=1.0e-2
-                )
+        utils.common.output_comparer(reference_output, engine_output)
 
 
 def main():

@@ -7,9 +7,10 @@ import xgboost
 
 import utils.common
 import utils.dataset
+import utils.save
 
 
-@utils.common.xgboost_saver(
+@utils.save.xgboost_saver(
     save_root=os.path.join(utils.project_root(), "models", "xgboost")
 )
 def create_xgboost_model(
