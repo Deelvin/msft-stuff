@@ -39,6 +39,21 @@ xgboost_rankers = [
 ]
 
 
+lightgbm_classifiers = [
+    "LGBMClassifier",
+]
+
+
+lightgbm_regressors = [
+    "LGBMRegressor",
+]
+
+
+lightgbm_rankers = [
+    "LGBMRanker",
+]
+
+
 class Profiler:
     def __init__(self, name="", show_latency=False, iterations_number=1):
         self.name = name

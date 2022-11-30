@@ -44,6 +44,10 @@ def xgboost_saver(save_root: str):
     return pickle_saver(save_root)
 
 
+def lightgbm_saver(save_root: str):
+    return pickle_saver(save_root)
+
+
 def onnx_saver(save_root: str):
     def save_to_file(model: onnx.ModelProto, save_path: str) -> None:
         with open(save_path, "wb") as f:
