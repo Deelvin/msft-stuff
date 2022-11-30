@@ -1,5 +1,6 @@
 import typing
 
+import lightgbm
 import numpy
 import onnxruntime
 import treelite_runtime
@@ -65,6 +66,32 @@ def xgboost_inference_runner(engine: typing.Any) -> typing.Callable:
     elif type(engine) == xgboost.XGBRegressor:
         return regressor_inference_runner
     elif type(engine) == xgboost.XGBRanker:
+        return ranker_inference_runner
+    else:
+        raise ValueError(f"Unsupported engine {engine}")
+
+
+def lightgbm_inference_runner(engine: typing.Any) -> typing.Callable:
+    def classifier_inference_runner(
+        numpy_input: numpy.ndarray,
+    ) -> typing.List[numpy.ndarray]:
+        return [engine.predict(numpy_input), engine.predict_proba(numpy_input)]
+
+    def regressor_inference_runner(
+        numpy_input: numpy.ndarray,
+    ) -> typing.List[numpy.ndarray]:
+        return [engine.predict(numpy_input)]
+
+    def ranker_inference_runner(
+        numpy_input: numpy.ndarray,
+    ) -> typing.List[numpy.ndarray]:
+        return [engine.predict(numpy_input)]
+
+    if type(engine) == lightgbm.LGBMClassifier:
+        return classifier_inference_runner
+    elif type(engine) == lightgbm.LGBMRegressor:
+        return regressor_inference_runner
+    elif type(engine) == lightgbm.LGBMRanker:
         return ranker_inference_runner
     else:
         raise ValueError(f"Unsupported engine {engine}")

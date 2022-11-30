@@ -20,6 +20,10 @@ def load_xgboost(model_path: str) -> typing.Any:
     return load_pickle(model_path)
 
 
+def load_lightgbm(model_path: str) -> typing.Any:
+    return load_pickle(model_path)
+
+
 def load_onnxruntime(model_path: str) -> onnxruntime.InferenceSession:
     return onnxruntime.InferenceSession(model_path)
 
