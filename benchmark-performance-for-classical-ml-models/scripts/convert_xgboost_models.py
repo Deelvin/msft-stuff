@@ -1,10 +1,12 @@
 import os
+import tempfile
 import typing
 
 import hummingbird.ml
 import numpy.testing
 import onnx
 import tqdm
+import treelite
 
 import utils.common
 import utils.dataset
@@ -32,7 +34,7 @@ def get_xgboost_output(
 def convert_to_onnx_with_hummingbird(
     xgb_model_path: str, model_name: str, input_dict: typing.Dict[str, numpy.ndarray]
 ) -> typing.Tuple[onnx.ModelProto, str]:
-    save_name = f"hummingbird_xgboost_{model_name}.onnx"
+    save_name = f"hummingbird_{model_name}.onnx"
 
     xgb_model = utils.load.load_xgboost(xgb_model_path)
 
@@ -49,6 +51,25 @@ def convert_to_onnx_with_hummingbird(
     ).model
 
     return onnx_model, save_name
+
+
+@utils.save.treelite_saver(
+    save_root=os.path.join(utils.project_root(), "models", "treelite_xgboost")
+)
+def convert_to_treelite(
+    xgb_model_path,
+    model_name: str,
+    _: typing.Dict[str, numpy.ndarray],
+) -> typing.Tuple[treelite.frontend.Model, str]:
+    save_name = f"treelite_{model_name}.so"
+
+    # TODO(agladyshev): dirty hack
+    with tempfile.TemporaryDirectory() as temp_dir:
+        json_path = os.path.join(temp_dir, f"{model_name}.json")
+        xgb_model = utils.load.load_xgboost(xgb_model_path)
+        xgb_model.save_model(json_path)
+        model = treelite.frontend.Model.load(json_path, model_format="xgboost_json")
+    return model, save_name
 
 
 def convert_models(
@@ -79,12 +100,21 @@ def convert_models(
         reference_output = get_xgboost_output(xgb_model_path, input_dict)
         engine_output = inference_function(model_path, input_dict)
 
+        # TODO(agladyshev):
+        #   Treelite doesn't provide predict method in sklearn-style for classifiers
+        if (
+            inference_function == utils.common.get_treelite_output
+            and len(reference_output) == 2
+        ):
+            reference_output = [reference_output[1]]
+
         utils.common.output_comparer(reference_output, engine_output)
 
 
 def main():
     for convert_function, inference_function in [
-        (convert_to_onnx_with_hummingbird, utils.common.get_ort_output)
+        (convert_to_onnx_with_hummingbird, utils.common.get_ort_output),
+        (convert_to_treelite, utils.common.get_treelite_output),
     ]:
         convert_models(
             utils.common.xgboost_classifiers,

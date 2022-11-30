@@ -69,7 +69,7 @@ def convert_to_onnx_with_skl2onnx(
 def convert_to_onnx_with_hummingbird(
     skl_model, model_name: str, input_dict: typing.Dict[str, numpy.ndarray]
 ) -> typing.Tuple[onnx.ModelProto, str]:
-    save_name = f"hummingbird_sklearn_{model_name}.onnx"
+    save_name = f"hummingbird_{model_name}.onnx"
 
     input_names = list(input_dict.keys())
     onnx_model = hummingbird.ml.convert(
@@ -87,7 +87,7 @@ def convert_to_onnx_with_hummingbird(
 
 
 @utils.save.treelite_saver(
-    save_root=os.path.join(utils.project_root(), "models", "treelite")
+    save_root=os.path.join(utils.project_root(), "models", "treelite_sklearn")
 )
 def convert_to_treelite(
     skl_model,
