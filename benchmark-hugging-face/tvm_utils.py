@@ -10,6 +10,7 @@ from tvm import meta_schedule as ms
 from tvm.relay import vm
 from tvm.relay.backend import Executor
 from tvm.runtime import vm as tvm_rt_vm
+from meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path
 
 
 def get_vm_lib(irmod, target, target_host, params):
@@ -206,9 +207,8 @@ def tvm_meta_tuning(
     ):
   # Without this, the same workloads with different constant weights
   # are treated as distinct tuning tasks.
-  module_equality="ignore-ndarray"
-  workload_path = str(log_dir.joinpath( model_name + "_workload.json"))
-  record_path = str(log_dir.joinpath( model_name + "_records.json"))
+  workload_path = get_workload_path(log_dir, model_name)
+  record_path = get_record_path(log_dir, model_name)
   # TODO(vvchernov): is "graph" tag related to graph executor?
   executor = Executor("graph", {"link-params": True}) # "aot"
   # This line is necessary for link-params to take effect during
@@ -219,7 +219,7 @@ def tvm_meta_tuning(
     workload_path,
     record_path,
 #    work_dir=log_dir,
-    module_equality=module_equality,
+    module_equality=MODULE_EQUALITY,
   )
   print("Begin meta-scheduler tuning...")
   tune_relay_with_task_extractor(
@@ -227,7 +227,7 @@ def tvm_meta_tuning(
     target=target,
     params=params,
     database=database,
-    module_equality=module_equality,
+    module_equality=MODULE_EQUALITY,
     trials_num=trials_num,
     extracted_task_indices=task_indices,
     excluded_task_indices=exl_task_indices,
