@@ -137,6 +137,7 @@ def tune_relay_with_task_extractor(
       num_trials_per_iter=8,
       strategy="replay-trace",  # TODO(vvchernov): "evolutionary",
       extracted_task_indices=[],
+      excluded_task_indices=[],
     ):
   space = "post-order-apply"
   seed = None
@@ -158,11 +159,21 @@ def tune_relay_with_task_extractor(
       seed=seed,
     )
 
+    if extracted_task_indices and excluded_task_indices:
+      raise BrokenPipeError("Both lists of indices (extracted or excluded tasks) can not exist simultaneously!")
+
     filtered_tasks=[]
     filtered_task_weights=[]
     if extracted_task_indices:
       filtered_tasks = [tasks[i] for i in extracted_task_indices]
       filtered_task_weights = [task_weights[i] for i in extracted_task_indices]
+    else:
+      filtered_tasks = tasks
+      filtered_task_weights = task_weights
+
+    if  excluded_task_indices:
+      filtered_tasks = [tasks[i] for i in range(len(tasks)) if i not in excluded_task_indices]
+      filtered_task_weights = [task_weights[i] for i in range(len(task_weights)) if i not in excluded_task_indices]
     else:
       filtered_tasks = tasks
       filtered_task_weights = task_weights
@@ -191,6 +202,7 @@ def tvm_meta_tuning(
       log_dir,
       model_name,
       task_indices=[],
+      exl_task_indices=[],
     ):
   # Without this, the same workloads with different constant weights
   # are treated as distinct tuning tasks.
@@ -218,6 +230,7 @@ def tvm_meta_tuning(
     module_equality=module_equality,
     trials_num=trials_num,
     extracted_task_indices=task_indices,
+    excluded_task_indices=exl_task_indices,
   )
 
   # vm_lib = ms.relay_integration.compile_relay(

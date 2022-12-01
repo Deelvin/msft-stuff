@@ -31,6 +31,8 @@ if __name__ == "__main__":
     "Switch on meta scheduler, by default it is auto scheduler")
   parser.add_argument("-e", "--extracted_task_indices", nargs="*", type=int, default=[], help=\
     "Indices of task which should be extracted form the model for tuning. Need for effective debugging")
+  parser.add_argument("-ex", "--excluded_task_indices", nargs="*", type=int, default=[], help=\
+    "Indices of task which should be excluded form the model for tuning. Need for effective debugging")
 
   args = parser.parse_args()
 
@@ -57,6 +59,7 @@ if __name__ == "__main__":
       log_dir=log_dir,
       model_name=model_name,
       task_indices=args.extracted_task_indices,
+      exl_task_indices=args.excluded_task_indices,
     )
   else:
     # Model tuning by tvm auto-scheduler
