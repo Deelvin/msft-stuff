@@ -31,22 +31,23 @@ def get_tvm_vm(mod,
                params,
                dev,
                nhwc=False,
-               tuning_logfile="",
+               tuning_log="",
                tuning_type=ANSOR_TYPE,
+               model_name="",
               ):
-  if tuning_logfile == "":
-    tuning_logfile = os.getenv("AUTOTVM_TUNING_LOG")
+  if tuning_log == "":
+    tuning_log = os.getenv("AUTOTVM_TUNING_LOG")
   lib = None
-  if tuning_logfile:
-    print("Use tuning file from ", tuning_logfile, ": ", tuning_logfile)
+  if tuning_log:
     if tuning_type == ANSOR_TYPE:
+      print("Use tuning file from ", tuning_log)
       desired_layouts = {
         "nn.conv2d": ["NHWC", "default"],
         "nn.conv2d_transpose": ["NHWC", "default"],
         "nn.upsampling": ["NHWC", "default"],
         "vision.roi_align": ["NHWC", "default"],
       }
-      with auto_scheduler.ApplyHistoryBest(tuning_logfile):
+      with auto_scheduler.ApplyHistoryBest(tuning_log):
         with tvm.transform.PassContext(
           opt_level=opt_level,
           config={
@@ -61,9 +62,29 @@ def get_tvm_vm(mod,
             mod = relay.transform.FoldConstant()(model_nhwc)
           lib = get_vm_lib(mod, target, target_host, params)
     elif tuning_type == AUTO_TVM_TYPE:
+      print("Use tuning file from ", tuning_log)
       with relay.build_config(opt_level=opt_level):
-        with autotvm.apply_history_best(tuning_logfile):
+        with autotvm.apply_history_best(tuning_log):
           lib = get_vm_lib(mod, target, target_host, params)
+    elif tuning_type == META_TYPE:
+      print("Use tuning files from directory:", tuning_log)
+      workload_path = get_workload_path(tuning_log, model_name)
+      record_path = get_record_path(tuning_log, model_name)
+      # Import data base from workload and record files
+      database = ms.database.JSONDatabase(
+        workload_path,
+        record_path,
+        module_equality=MODULE_EQUALITY,
+      )
+
+      lib = ms.relay_integration.compile_relay(
+        database=database,
+        mod=mod,
+        target=target,
+        params=params,
+        backend="vm", # "graph" by default
+        opt_level=opt_level,
+      )
     else:
       # TODO(vvchernov): replace prints by logger, but investigate ORT logging system for python before
       # print is not commented out while it declares error
@@ -84,8 +105,11 @@ def tvm_test(
       target,
       target_host,
       freeze=True,
-      tuning_logs=""):
-  print("----- TVM testing -----")
+      tuning_logs="",
+      use_meta=False,
+      model_name="",
+    ):
+  print("----- TVM testing of", model_name, "-----")
   shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
   mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
   mod = relay.transform.DynamicToStatic()(mod)
@@ -93,7 +117,10 @@ def tvm_test(
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
   dev = tvm.device(str(target), 0)
-
+  if use_meta:
+    tuning_type = META_TYPE
+  else:
+    tuning_type = ANSOR_TYPE
   m = get_tvm_vm(
         mod,
         opt_level,
@@ -101,7 +128,9 @@ def tvm_test(
         target_host,
         params,
         dev,
-        tuning_logfile=tuning_logs,
+        tuning_log=tuning_logs,
+        tuning_type=tuning_type,
+        model_name=model_name,
       )
   m.set_input("main", **tvm_inputs)
   tvm_runner = partial(m.invoke, "main")

@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from functools import partial
 
 import onnx
@@ -29,7 +30,9 @@ if __name__ == "__main__":
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")
   parser.add_argument("-tu", "--tuning_logs", default="", type=str, help=\
-    "The path to tuning logs")
+    "The path to tuning logs. It can be json file for auto-scheduler or directory for meta-scheduler")
+  parser.add_argument("-meta", action="store_true", default=False, help=\
+    "Use meta-scheduler database files for compilation")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
     "Artificially generated inputs. if false the default text from utils is tokenized")
 
@@ -58,7 +61,9 @@ if __name__ == "__main__":
       args.target,
       args.target,
       freeze,
-      args.tuning_logs
+      args.tuning_logs,
+      args.meta,
+      model_name=Path(args.model_path).stem
     )
 
   if args.ort:
