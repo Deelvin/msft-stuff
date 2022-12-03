@@ -21,8 +21,10 @@ if __name__ == "__main__":
   # Model format
   parser.add_argument("-m", "--model_path", default="", type=str, help=\
     "The path to onnx-file with model")
-  parser.add_argument("-n", "--trials_number", default=100, type=int, help=\
-    "Number of iterations of inference for performance measurement")
+  parser.add_argument("-n", "--trials_number", default=20000, type=int, help=\
+    "Maximal number of trials for model tuning")
+  parser.add_argument("-npt", "--trials_per_task_number", default=1000, type=int, help=\
+    "Number of trials per task for model tuning")
   parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
     "Target for model inference")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
@@ -47,22 +49,22 @@ if __name__ == "__main__":
 
   model_path = Path(args.model_path)
   model_name = model_path.stem
-  log_dir = model_path.parent
 
   if args.meta:
     # Model tuning by tvm meta-scheduler
+    log_dir = model_path.parent.joinpath(model_name + "_meta")
     tvm_meta_tuning(
       mod,
       params,
       tvm.target.Target(args.target),
       trials_num=args.trials_number,
       log_dir=log_dir,
-      model_name=model_name,
       task_indices=args.extracted_task_indices,
       exl_task_indices=args.excluded_task_indices,
     )
   else:
     # Model tuning by tvm auto-scheduler
+    log_dir = model_path.parent.joinpath(model_name + "_ansor")
     tvm_ansor_tuning(
       mod,
       args.target,

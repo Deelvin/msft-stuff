@@ -10,7 +10,7 @@ from tvm import meta_schedule as ms
 from tvm.relay import vm
 from tvm.relay.backend import Executor
 from tvm.runtime import vm as tvm_rt_vm
-from meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path
+from meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
 
 
 def get_vm_lib(irmod, target, target_host, params):
@@ -68,12 +68,14 @@ def get_tvm_vm(mod,
           lib = get_vm_lib(mod, target, target_host, params)
     elif tuning_type == META_TYPE:
       print("Use tuning files from directory:", tuning_log)
-      workload_path = get_workload_path(tuning_log, model_name)
-      record_path = get_record_path(tuning_log, model_name)
+      workload_path = get_workload_path(tuning_log)
+      record_path = get_record_path(tuning_log)
+      work_dir = get_work_dir(tuning_log)
       # Import data base from workload and record files
       database = ms.database.JSONDatabase(
         workload_path,
         record_path,
+        work_dir=work_dir,
         module_equality=MODULE_EQUALITY,
       )
 
@@ -161,6 +163,7 @@ def tune_relay_with_task_extractor(
       target,
       params,
       database,
+      work_dir,
       module_equality,
       trials_num = 20000,
       max_trials_per_task=8,
@@ -176,53 +179,53 @@ def tune_relay_with_task_extractor(
   cost_model = "xgb"
   measure_callbacks = "default"
   task_scheduler = "gradient"
-  with tempfile.TemporaryDirectory() as work_dir:
-    tasks, task_weights = ms.relay_integration.extracted_tasks_to_tune_contexts(
-      extracted_tasks=ms.relay_integration.extract_tasks(
-                        mod,
-                        target,
-                        params,
-                        module_equality=module_equality),
+
+  tasks, task_weights = ms.relay_integration.extracted_tasks_to_tune_contexts(
+    extracted_tasks=ms.relay_integration.extract_tasks(
+                      mod,
+                      target,
+                      params,
+                      module_equality=module_equality),
+    work_dir=work_dir,
+    space=space,
+    strategy=strategy,
+    seed=seed,
+  )
+
+  if extracted_task_indices and excluded_task_indices:
+    raise BrokenPipeError("Both lists of indices (extracted or excluded tasks) can not exist simultaneously!")
+
+  filtered_tasks=[]
+  filtered_task_weights=[]
+  if extracted_task_indices:
+    filtered_tasks = [tasks[i] for i in extracted_task_indices]
+    filtered_task_weights = [task_weights[i] for i in extracted_task_indices]
+  else:
+    filtered_tasks = tasks
+    filtered_task_weights = task_weights
+
+  if  excluded_task_indices:
+    filtered_tasks = [tasks[i] for i in range(len(tasks)) if i not in excluded_task_indices]
+    filtered_task_weights = [task_weights[i] for i in range(len(task_weights)) if i not in excluded_task_indices]
+  else:
+    filtered_tasks = tasks
+    filtered_task_weights = task_weights
+
+  ms.relay_integration.tune_tasks(
+      tasks=filtered_tasks,
+      task_weights=filtered_task_weights,
       work_dir=work_dir,
-      space=space,
-      strategy=strategy,
-      seed=seed,
-    )
-
-    if extracted_task_indices and excluded_task_indices:
-      raise BrokenPipeError("Both lists of indices (extracted or excluded tasks) can not exist simultaneously!")
-
-    filtered_tasks=[]
-    filtered_task_weights=[]
-    if extracted_task_indices:
-      filtered_tasks = [tasks[i] for i in extracted_task_indices]
-      filtered_task_weights = [task_weights[i] for i in extracted_task_indices]
-    else:
-      filtered_tasks = tasks
-      filtered_task_weights = task_weights
-
-    if  excluded_task_indices:
-      filtered_tasks = [tasks[i] for i in range(len(tasks)) if i not in excluded_task_indices]
-      filtered_task_weights = [task_weights[i] for i in range(len(task_weights)) if i not in excluded_task_indices]
-    else:
-      filtered_tasks = tasks
-      filtered_task_weights = task_weights
-
-    ms.relay_integration.tune_tasks(
-        tasks=filtered_tasks,
-        task_weights=filtered_task_weights,
-        work_dir=work_dir,
-        max_trials_global=trials_num,
-        max_trials_per_task=max_trials_per_task,
-        num_trials_per_iter=num_trials_per_iter,
-        builder=builder,
-        runner=runner,
-        database=database,
-        cost_model=cost_model,
-        measure_callbacks=measure_callbacks,
-        task_scheduler=task_scheduler,
-        module_equality=module_equality,
-    )
+      max_trials_global=trials_num,
+      max_trials_per_task=max_trials_per_task,
+      num_trials_per_iter=num_trials_per_iter,
+      builder=builder,
+      runner=runner,
+      database=database,
+      cost_model=cost_model,
+      measure_callbacks=measure_callbacks,
+      task_scheduler=task_scheduler,
+      module_equality=module_equality,
+  )
 
 def tvm_meta_tuning(
       mod,
@@ -230,24 +233,19 @@ def tvm_meta_tuning(
       target,
       trials_num,
       log_dir,
-      model_name,
       task_indices=[],
       exl_task_indices=[],
     ):
   # Without this, the same workloads with different constant weights
   # are treated as distinct tuning tasks.
-  workload_path = get_workload_path(log_dir, model_name)
-  record_path = get_record_path(log_dir, model_name)
-  # TODO(vvchernov): is "graph" tag related to graph executor?
-  executor = Executor("graph", {"link-params": True}) # "aot"
-  # This line is necessary for link-params to take effect during
-  # task extraction and relay.build(...).
-  mod = mod.with_attr("executor", executor)
+  workload_path = get_workload_path(log_dir)
+  record_path = get_record_path(log_dir)
+  work_dir = get_work_dir(log_dir)
   # Empty data base with workload and record file names
   database = ms.database.JSONDatabase(
     workload_path,
     record_path,
-#    work_dir=log_dir,
+    work_dir=work_dir,
     module_equality=MODULE_EQUALITY,
   )
   print("Begin meta-scheduler tuning...")
@@ -256,18 +254,11 @@ def tvm_meta_tuning(
     target=target,
     params=params,
     database=database,
+    work_dir=work_dir,
     module_equality=MODULE_EQUALITY,
     trials_num=trials_num,
     extracted_task_indices=task_indices,
     excluded_task_indices=exl_task_indices,
   )
-
-  # vm_lib = ms.relay_integration.compile_relay(
-  #   database=database,
-  #   mod=mod,
-  #   target=target,
-  #   params=params,
-  #   backend="vm", # "graph" by default
-  # )
   print("Tuning finished")
   pass
