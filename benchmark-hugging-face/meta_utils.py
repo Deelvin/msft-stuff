@@ -17,4 +17,6 @@ def get_record_path(dir: Union[str, Path]):
 def get_work_dir(dir: Union[str, Path]):
   if isinstance(dir, str):
     dir = Path(dir)
-  return str(dir.joinpath("work"))
+  work_dir = dir.joinpath("work")
+  work_dir.mkdir(parents=True, exist_ok=True)
+  return str(work_dir)

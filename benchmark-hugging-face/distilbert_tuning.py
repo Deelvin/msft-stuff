@@ -53,6 +53,7 @@ if __name__ == "__main__":
   if args.meta:
     # Model tuning by tvm meta-scheduler
     log_dir = model_path.parent.joinpath(model_name + "_meta")
+    log_dir.mkdir(parents=True, exist_ok=True)
     tvm_meta_tuning(
       mod,
       params,
@@ -66,6 +67,7 @@ if __name__ == "__main__":
   else:
     # Model tuning by tvm auto-scheduler
     log_dir = model_path.parent.joinpath(model_name + "_ansor")
+    log_dir.mkdir(parents=True, exist_ok=True)
     tvm_ansor_tuning(
       mod,
       args.target,
