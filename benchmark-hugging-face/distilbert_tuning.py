@@ -58,6 +58,7 @@ if __name__ == "__main__":
       params,
       tvm.target.Target(args.target),
       trials_num=args.trials_number,
+      trials_per_task_num=args.trials_per_task_number,
       log_dir=log_dir,
       task_indices=args.extracted_task_indices,
       exl_task_indices=args.excluded_task_indices,

@@ -1,5 +1,4 @@
 import os
-import tempfile
 import copy
 from functools import partial
 
@@ -8,7 +7,6 @@ from tvm import autotvm
 from tvm import relay, auto_scheduler
 from tvm import meta_schedule as ms
 from tvm.relay import vm
-from tvm.relay.backend import Executor
 from tvm.runtime import vm as tvm_rt_vm
 from meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
 
@@ -166,8 +164,8 @@ def tune_relay_with_task_extractor(
       work_dir,
       module_equality,
       trials_num = 20000,
-      max_trials_per_task=8,
-      num_trials_per_iter=8,
+      max_trials_per_task=128,
+      num_trials_per_iter=16,
       strategy="replay-trace",  # TODO(vvchernov): "evolutionary",
       extracted_task_indices=[],
       excluded_task_indices=[],
@@ -204,7 +202,7 @@ def tune_relay_with_task_extractor(
     filtered_tasks = tasks
     filtered_task_weights = task_weights
 
-  if  excluded_task_indices:
+  if excluded_task_indices:
     filtered_tasks = [tasks[i] for i in range(len(tasks)) if i not in excluded_task_indices]
     filtered_task_weights = [task_weights[i] for i in range(len(task_weights)) if i not in excluded_task_indices]
   else:
@@ -232,6 +230,7 @@ def tvm_meta_tuning(
       params,
       target,
       trials_num,
+      trials_per_task_num,
       log_dir,
       task_indices=[],
       exl_task_indices=[],
@@ -257,6 +256,7 @@ def tvm_meta_tuning(
     work_dir=work_dir,
     module_equality=MODULE_EQUALITY,
     trials_num=trials_num,
+    max_trials_per_task=trials_per_task_num,
     extracted_task_indices=task_indices,
     excluded_task_indices=exl_task_indices,
   )
