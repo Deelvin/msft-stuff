@@ -1,7 +1,13 @@
+import csv
 import os
 import typing
 
+import utils
+import utils.benchmark_lightgbm
 import utils.benchmark_onnx
+import utils.benchmark_sklearn
+import utils.benchmark_treelite
+import utils.benchmark_xgboost
 import utils.common
 import utils.dataset
 
@@ -111,12 +117,12 @@ def benchmark_row(model_name: str) -> typing.List[typing.Tuple]:
                     models_root, "treelite_sklearn", f"treelite_{model_name}.so"
                 ),
                 get_dataset_generator(model_name),
-                None,
+                utils.benchmark_treelite.TreeliteModel,
             ),
             (
                 os.path.join(models_root, "sklearn", f"{model_name}.sklearn"),
                 get_dataset_generator(model_name),
-                None,
+                utils.benchmark_sklearn.SklearnModel,
             ),
         ]
     elif is_xgboost_model(model_name):
@@ -133,12 +139,12 @@ def benchmark_row(model_name: str) -> typing.List[typing.Tuple]:
                     models_root, "treelite_xgboost", f"treelite_{model_name}.so"
                 ),
                 get_dataset_generator(model_name),
-                None,
+                utils.benchmark_treelite.TreeliteModel,
             ),
             (
                 os.path.join(models_root, "xgboost", f"{model_name}.xgboost"),
                 get_dataset_generator(model_name),
-                None,
+                utils.benchmark_xgboost.XGBoostModel,
             ),
         ]
     elif is_lightgbm_model(model_name):
@@ -157,12 +163,12 @@ def benchmark_row(model_name: str) -> typing.List[typing.Tuple]:
                     models_root, "treelite_lightgbm", f"treelite_{model_name}.so"
                 ),
                 get_dataset_generator(model_name),
-                None,
+                utils.benchmark_treelite.TreeliteModel,
             ),
             (
                 os.path.join(models_root, "lightgbm", f"{model_name}.lightgbm"),
                 get_dataset_generator(model_name),
-                None,
+                utils.benchmark_lightgbm.LightgbmModel,
             ),
         ]
     else:
@@ -173,14 +179,68 @@ def benchmark_meta():
     return [(model_name, benchmark_row(model_name)) for model_name in list_of_models()]
 
 
-def main():
-    for model_name, meta in benchmark_meta():
-        for model_path, dataset_generator, benchmark_factory in meta:
-            X, _ = dataset_generator(10)
-            input_dict = {"input": X}
-            benchmarker = benchmark_factory(model_path, input_dict)
+def return_value_or_none(f: typing.Callable) -> typing.Callable:
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            print(e)
+            return None
 
-            mean, std = benchmarker.benchmark(num_trials=10, num_runs_per_trial=10)
+    return wrapper
+
+
+def make_table_header() -> typing.List[str]:
+    return [
+        "Model name",
+        "skl2onnx (ms)",
+        "Treelite (ms)",
+        "Hummingbird (ms)",
+        "Python (ms)",
+    ]
+
+
+def make_table_row(performance_results: typing.List) -> typing.List[str]:
+    csv_none = "-"
+
+    def replace_dot_with_comma(value):
+        return str(value).replace(".", ",") if value is not None else value
+
+    def replace_if_none(value):
+        return csv_none if value is None else value
+
+    return [
+        replace_if_none(replace_dot_with_comma(value)) for value in performance_results
+    ]
+
+
+def main():
+    with open(
+        os.path.join(utils.project_root(), "benchmark_results.csv"), "w", newline=""
+    ) as csv_file:
+        writer = csv.writer(csv_file, delimiter="\t")
+        writer.writerow(make_table_header())
+
+        for model_name, meta in benchmark_meta():
+            model_results = []
+            if not is_sklearn_model(model_name):
+                # Fill skl2onnx
+                model_results.append(None)
+            for model_path, dataset_generator, benchmark_factory in meta:
+                X, _ = dataset_generator(10000)
+                input_dict = {"input": X}
+
+                benchmark_factory = return_value_or_none(benchmark_factory)
+                benchmarker = benchmark_factory(model_path, input_dict)
+
+                if benchmarker:
+                    benchmark_function = benchmarker.benchmark
+                    mean, std = benchmark_function(num_trials=5, num_runs_per_trial=10)
+                    model_results.append(mean)
+                else:
+                    model_results.append(None)
+
+            writer.writerow([model_name, *make_table_row(model_results)])
 
 
 if __name__ == "__main__":
