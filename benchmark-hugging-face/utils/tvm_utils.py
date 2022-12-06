@@ -23,16 +23,16 @@ def get_vm_lib(irmod, target, target_host, params):
 ANSOR_TYPE = "Ansor"
 AUTO_TVM_TYPE = "AutoTVM"
 META_TYPE = "Meta"
-def get_tvm_vm(mod,
-               opt_level,
-               target,
-               target_host,
-               params,
-               dev,
-               nhwc=False,
-               tuning_log="",
-               tuning_type=ANSOR_TYPE,
-              ):
+def get_tvm_tuned_vm_lib(
+      mod,
+      opt_level,
+      target,
+      target_host,
+      params,
+      nhwc=False,
+      tuning_log="",
+      tuning_type=ANSOR_TYPE,
+    ):
   if tuning_log == "":
     tuning_log = os.getenv("AUTOTVM_TUNING_LOG")
   lib = None
@@ -95,6 +95,28 @@ def get_tvm_vm(mod,
     with tvm.transform.PassContext(opt_level=opt_level):
       lib = get_vm_lib(mod, target, target_host, params)
 
+  return lib
+
+def get_tvm_vm(mod,
+               opt_level,
+               target,
+               target_host,
+               params,
+               dev,
+               nhwc=False,
+               tuning_log="",
+               tuning_type=ANSOR_TYPE,
+              ):
+  lib = get_tvm_tuned_vm_lib(
+          mod,
+          opt_level,
+          target,
+          target_host,
+          params,
+          nhwc=nhwc,
+          tuning_log=tuning_log,
+          tuning_type=tuning_type,
+        )
   return tvm_rt_vm.VirtualMachine(lib, dev)
 
 def tvm_test(
@@ -155,15 +177,21 @@ def tvm_profile(
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
   dev = tvm.device(str(target), 0)
-
   if use_meta:
-    print("Tuning logs path:", tuning_logs, "\noptinmization level:", opt_level)
-    print("Profiling with database from meta-scheduler is not supported currently")
-    pass
+    tuning_type = META_TYPE
   else:
-    lib = get_vm_lib(mod, target, target_host, params)
-    vm = profiler_vm.VirtualMachineProfiler(lib, dev)
-    vm.profile(func_name="main", **tvm_inputs)
+    tuning_type = ANSOR_TYPE
+  lib = get_tvm_tuned_vm_lib(
+          mod,
+          opt_level,
+          target,
+          target_host,
+          params,
+          tuning_log=tuning_logs,
+          tuning_type=tuning_type,
+          )
+  vm = profiler_vm.VirtualMachineProfiler(lib, dev)
+  vm.profile(func_name="main", **tvm_inputs)
 
 def tvm_ansor_tuning(mod, target, target_host, params, trials_num, log_dir, model_name):
   log_file = str(log_dir.joinpath(model_name).with_suffix("_tuned.json"))
