@@ -8,6 +8,7 @@ from tvm import relay, auto_scheduler
 from tvm import meta_schedule as ms
 from tvm.relay import vm
 from tvm.runtime import vm as tvm_rt_vm
+from tvm.runtime import profiler_vm
 from meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
 
 
@@ -31,7 +32,6 @@ def get_tvm_vm(mod,
                nhwc=False,
                tuning_log="",
                tuning_type=ANSOR_TYPE,
-               model_name="",
               ):
   if tuning_log == "":
     tuning_log = os.getenv("AUTOTVM_TUNING_LOG")
@@ -135,6 +135,35 @@ def tvm_test(
   m.set_input("main", **tvm_inputs)
   tvm_runner = partial(m.invoke, "main")
   benchmark_test(tvm_runner, framework_name = "TVM")
+
+def tvm_profile(
+      onnx_model,
+      inputs,
+      target,
+      target_host,
+      opt_level = 3,
+      freeze=True,
+      tuning_logs="",
+      use_meta=False,
+      model_name="",
+    ):
+  print("----- TVM profiling of", model_name, "-----")
+  shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
+  mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
+  mod = relay.transform.DynamicToStatic()(mod)
+
+  tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
+
+  dev = tvm.device(str(target), 0)
+
+  if use_meta:
+    print("Tuning logs path:", tuning_logs, "\noptinmization level:", opt_level)
+    print("Profiling with database from meta-scheduler is not supported currently")
+    pass
+  else:
+    lib = get_vm_lib(mod, target, target_host, params)
+    vm = profiler_vm.VirtualMachineProfiler(lib, dev)
+    vm.profile(func_name="main", **tvm_inputs)
 
 def tvm_ansor_tuning(mod, target, target_host, params, trials_num, log_dir, model_name):
   log_file = str(log_dir.joinpath(model_name).with_suffix("_tuned.json"))
