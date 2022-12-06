@@ -4,7 +4,7 @@ from functools import partial
 
 import onnx
 
-from utils import perf_test, get_distilbert_inputs
+from utils.utils import perf_test, get_distilbert_inputs
 
 
 if __name__ == "__main__":
@@ -52,7 +52,7 @@ if __name__ == "__main__":
   benchmark_test = partial(perf_test, iters_number = args.iters_number, model_name = "Distilbert-text")
 
   if args.tvm:
-    from tvm_utils import tvm_test
+    from utils.tvm_utils import tvm_test
     tvm_test(
       benchmark_test,
       onnx_model,
@@ -67,5 +67,5 @@ if __name__ == "__main__":
     )
 
   if args.ort:
-    from ort_utils import ort_test
+    from utils.ort_utils import ort_test
     ort_test(benchmark_test, args.model_path, encoded_inputs)

@@ -3,7 +3,7 @@ from functools import partial
 
 import distilbert
 
-from utils import perf_test, get_distilbert_inputs
+from utils.utils import perf_test, get_distilbert_inputs
 
 
 if __name__ == "__main__":

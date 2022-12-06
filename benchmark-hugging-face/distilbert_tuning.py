@@ -6,8 +6,8 @@ import onnx
 import tvm
 from tvm import relay
 
-from utils import get_distilbert_inputs
-from tvm_utils import tvm_ansor_tuning, tvm_meta_tuning
+from utils.utils import get_distilbert_inputs
+from utils.tvm_utils import tvm_ansor_tuning, tvm_meta_tuning
 
 
 if __name__ == "__main__":
