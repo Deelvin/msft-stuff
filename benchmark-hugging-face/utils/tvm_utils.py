@@ -9,7 +9,7 @@ from tvm import meta_schedule as ms
 from tvm.relay import vm
 from tvm.runtime import vm as tvm_rt_vm
 from tvm.runtime import profiler_vm
-from meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
+from .meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
 
 
 def get_vm_lib(irmod, target, target_host, params):
@@ -152,7 +152,6 @@ def tvm_test(
         dev,
         tuning_log=tuning_logs,
         tuning_type=tuning_type,
-        model_name=model_name,
       )
   m.set_input("main", **tvm_inputs)
   tvm_runner = partial(m.invoke, "main")
