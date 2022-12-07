@@ -1,3 +1,4 @@
+import argparse
 import csv
 import os
 import typing
@@ -217,31 +218,46 @@ def make_table_row(performance_results: typing.List) -> typing.List[str]:
 
 
 def main():
-    with open(
-        os.path.join(utils.project_root(), "benchmark_results.csv"), "w", newline=""
-    ) as csv_file:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--shift",
+        required=False,
+        default=0,
+    )
+    args = parser.parse_args()
+
+    benchmark_file_path = os.path.join(utils.project_root(), "benchmark_results.csv")
+    with open(benchmark_file_path, "w", newline="") as csv_file:
         writer = csv.writer(csv_file, delimiter="\t")
         writer.writerow(make_table_header())
 
-        for model_name, meta in tqdm.tqdm(benchmark_meta()):
-            model_results = []
-            if not is_sklearn_model(model_name):
-                # Fill skl2onnx
+    models_meta = benchmark_meta()[args.shift:]
+    for model_name, meta in tqdm.tqdm(models_meta):
+        model_results = []
+        if not is_sklearn_model(model_name):
+            # Fill skl2onnx
+            model_results.append(None)
+        for model_path, dataset_generator, benchmark_factory in meta:
+            if "hummingbird" in model_path and "LGBMClassifier" in model_path:
+                # Need ~120GB of RAM
                 model_results.append(None)
-            for model_path, dataset_generator, benchmark_factory in meta:
-                X, _ = dataset_generator(10000)
-                input_dict = {"input": X}
+                continue
 
-                benchmark_factory = return_value_or_none(benchmark_factory)
-                benchmarker = benchmark_factory(model_path, input_dict)
+            X, _ = dataset_generator(10000)
+            input_dict = {"input": X}
 
-                if benchmarker:
-                    benchmark_function = benchmarker.benchmark
-                    mean, std = benchmark_function(num_trials=5, num_runs_per_trial=10)
-                    model_results.append(mean)
-                else:
-                    model_results.append(None)
+            benchmark_factory = return_value_or_none(benchmark_factory)
+            benchmarker = benchmark_factory(model_path, input_dict)
 
+            if benchmarker:
+                benchmark_function = benchmarker.benchmark
+                mean, std = benchmark_function(num_trials=5, num_runs_per_trial=10)
+                model_results.append(mean)
+            else:
+                model_results.append(None)
+
+        with open(benchmark_file_path, "a", newline="") as csv_file:
+            writer = csv.writer(csv_file, delimiter="\t")
             writer.writerow([model_name, *make_table_row(model_results)])
 
 
