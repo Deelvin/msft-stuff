@@ -3,7 +3,7 @@ from functools import partial
 
 import onnx
 
-from utils.utils import perf_test, get_distilbert_inputs
+from utils.utils import SKYLAKE_TARGET, perf_test, get_distilbert_inputs
 
 
 if __name__ == "__main__":
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     "Performance test of TVM")
   parser.add_argument("-ort", action="store_true", default=False, help=\
     "Performance test of ONNX Runtime")
-  parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
+  parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")

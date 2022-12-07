@@ -6,6 +6,7 @@ import onnx
 import tvm
 
 from utils.tvm_utils import get_distilbert_mod_params, tvm_ansor_tuning, tvm_meta_tuning
+from utils.utils import SKYLAKE_TARGET
 
 
 if __name__ == "__main__":
@@ -23,7 +24,7 @@ if __name__ == "__main__":
     "Maximal number of trials for model tuning")
   parser.add_argument("-npt", "--trials_per_task_number", default=1000, type=int, help=\
     "Number of trials per task for model tuning")
-  parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
+  parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
     "Artificially generated inputs. if false the default text from utils is tokenized")

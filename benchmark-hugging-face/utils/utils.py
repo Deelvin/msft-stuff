@@ -4,6 +4,7 @@ import numpy as np
 from transformers import DistilBertTokenizer
 
 
+SKYLAKE_TARGET = "llvm -mcpu=skylake-avx512 -num-cores 8"
 DISTILBERT_TEST_TEXT = """
 Replace me by any text you'd like. DistilBERT is a distilled version of the BERT mode with 40 percent smaller size 
 and 60 percent faster inference time, while preserving over 95 percent of BERT's accuracy on the GLUE language understanding task.
