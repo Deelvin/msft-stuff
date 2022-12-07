@@ -5,16 +5,9 @@ from functools import partial
 import tvm
 from tvm import meta_schedule as ms
 
-from default_tir_1 import ModuleD1
-
 from utils.utils import perf_test
+from tir_utils import get_ir_mod
 
-
-def get_ir_mod(name):
-  if name == "D1":
-    return ModuleD1["main"]
-  else:
-    raise NotImplementedError("Other kernels except D1 are not supported")
 
 def main():
   class MyFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
