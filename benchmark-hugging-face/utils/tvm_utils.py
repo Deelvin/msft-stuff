@@ -7,10 +7,34 @@ from tvm import autotvm
 from tvm import relay, auto_scheduler
 from tvm import meta_schedule as ms
 from tvm.relay import vm
+from tvm.relay.backend import Executor
 from tvm.runtime import vm as tvm_rt_vm
 from tvm.runtime import profiler_vm
-from .meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
 
+from utils.utils import DISTILBERT_TEST_TEXT, get_distilbert_inputs
+from utils.meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
+
+
+def get_distilbert_mod_params_with_inputs(onnx_model,
+                                          inputs,
+                                          freeze=True):
+  shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
+  mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
+  mod = relay.transform.DynamicToStatic()(mod)
+
+  # Set attr for correct tuning by meta-scheduler
+  executor = Executor("graph", {"link-params": True}) # "aot"
+  mod = mod.with_attr("executor", executor)
+
+  return mod, params
+
+def get_distilbert_mod_params(onnx_model,
+                              artificial: bool,
+                              input_text : str = DISTILBERT_TEST_TEXT,
+                              tag : str = "distilbert-base-uncased"):
+  encoded_inputs = get_distilbert_inputs(artificial, input_text, tag)
+
+  return get_distilbert_mod_params_with_inputs(onnx_model, encoded_inputs)
 
 def get_vm_lib(irmod, target, target_host, params):
     return vm.compile(
@@ -132,9 +156,7 @@ def tvm_test(
       model_name="",
     ):
   print("----- TVM testing of", model_name, "-----")
-  shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
-  mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
-  mod = relay.transform.DynamicToStatic()(mod)
+  mod, params = get_distilbert_mod_params_with_inputs(onnx_model, inputs, freeze)
 
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
