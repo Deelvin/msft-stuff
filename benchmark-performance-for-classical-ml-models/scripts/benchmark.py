@@ -2,6 +2,8 @@ import csv
 import os
 import typing
 
+import tqdm
+
 import utils
 import utils.benchmark_lightgbm
 import utils.benchmark_onnx
@@ -221,7 +223,7 @@ def main():
         writer = csv.writer(csv_file, delimiter="\t")
         writer.writerow(make_table_header())
 
-        for model_name, meta in benchmark_meta():
+        for model_name, meta in tqdm.tqdm(benchmark_meta()):
             model_results = []
             if not is_sklearn_model(model_name):
                 # Fill skl2onnx
