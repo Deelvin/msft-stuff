@@ -1,6 +1,6 @@
 #!/bin/sh -x
 
-MACHINE_TYPE="n1-standard-4"
+MACHINE_TYPE=$1
 INSTANCE_NAME="benchmark-instance-${MACHINE_TYPE}"
 PROJECT="octoml-deelvin"
 
