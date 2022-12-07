@@ -191,9 +191,7 @@ def tvm_profile(
       model_name="",
     ):
   print("----- TVM profiling of", model_name, "-----")
-  shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
-  mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
-  mod = relay.transform.DynamicToStatic()(mod)
+  mod, params = get_distilbert_mod_params_with_inputs(onnx_model, inputs, freeze)
 
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
