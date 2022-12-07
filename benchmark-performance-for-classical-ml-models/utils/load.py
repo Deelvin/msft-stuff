@@ -15,15 +15,21 @@ def load_pickle(model_path: str) -> typing.Any:
 
 
 def load_sklearn(model_path: str) -> typing.Any:
-    return load_pickle(model_path)
+    model = load_pickle(model_path)
+    model.set_params(n_jobs=utils.common.NUM_THREADS)
+    return model
 
 
 def load_xgboost(model_path: str) -> typing.Any:
-    return load_pickle(model_path)
+    model = load_pickle(model_path)
+    model.set_params(n_jobs=utils.common.NUM_THREADS)
+    return model
 
 
 def load_lightgbm(model_path: str) -> typing.Any:
-    return load_pickle(model_path)
+    model = load_pickle(model_path)
+    model.set_params(n_jobs=utils.common.NUM_THREADS)
+    return model
 
 
 def load_onnxruntime(model_path: str) -> onnxruntime.InferenceSession:
@@ -33,4 +39,6 @@ def load_onnxruntime(model_path: str) -> onnxruntime.InferenceSession:
 
 
 def load_treelite(model_path: str) -> treelite_runtime.Predictor:
-    return treelite_runtime.Predictor(libpath=model_path)
+    return treelite_runtime.Predictor(
+        libpath=model_path, nthread=utils.common.NUM_THREADS
+    )

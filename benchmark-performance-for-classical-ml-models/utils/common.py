@@ -7,7 +7,7 @@ import numpy
 import utils.inference
 import utils.load
 
-NUM_THREADS = multiprocessing.cpu_count()
+NUM_THREADS = int(multiprocessing.cpu_count() / 2)
 
 
 sklearn_classifiers = [
