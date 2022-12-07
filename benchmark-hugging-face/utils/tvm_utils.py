@@ -190,7 +190,8 @@ def tvm_profile(
           tuning_type=tuning_type,
           )
   vm = profiler_vm.VirtualMachineProfiler(lib, dev)
-  vm.profile(func_name="main", **tvm_inputs)
+  res = vm.profile(func_name="main", **tvm_inputs)
+  print("Profiling result:", res)
 
 def tvm_ansor_tuning(mod, target, target_host, params, trials_num, log_dir, model_name):
   log_file = str(log_dir.joinpath(model_name).with_suffix("_tuned.json"))
