@@ -4,6 +4,8 @@ import typing
 import onnxruntime
 import treelite_runtime
 
+import utils.common
+
 
 def load_pickle(model_path: str) -> typing.Any:
     with open(model_path, "rb") as model_file:
@@ -25,7 +27,9 @@ def load_lightgbm(model_path: str) -> typing.Any:
 
 
 def load_onnxruntime(model_path: str) -> onnxruntime.InferenceSession:
-    return onnxruntime.InferenceSession(model_path)
+    sess_options = onnxruntime.SessionOptions()
+    sess_options.intra_op_num_threads = utils.common.NUM_THREADS
+    return onnxruntime.InferenceSession(model_path, sess_options=sess_options)
 
 
 def load_treelite(model_path: str) -> treelite_runtime.Predictor:

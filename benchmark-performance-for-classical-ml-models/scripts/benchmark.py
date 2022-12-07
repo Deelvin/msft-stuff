@@ -231,7 +231,7 @@ def main():
         writer = csv.writer(csv_file, delimiter="\t")
         writer.writerow(make_table_header())
 
-    models_meta = benchmark_meta()[args.shift:]
+    models_meta = benchmark_meta()[args.shift :]
     for model_name, meta in tqdm.tqdm(models_meta):
         model_results = []
         if not is_sklearn_model(model_name):

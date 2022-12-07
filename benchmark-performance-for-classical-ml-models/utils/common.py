@@ -1,3 +1,4 @@
+import multiprocessing
 import time
 import typing
 
@@ -5,6 +6,9 @@ import numpy
 
 import utils.inference
 import utils.load
+
+NUM_THREADS = multiprocessing.cpu_count()
+
 
 sklearn_classifiers = [
     "RandomForestClassifier",
