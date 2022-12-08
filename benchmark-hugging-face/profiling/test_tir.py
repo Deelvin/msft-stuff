@@ -61,7 +61,7 @@ def main():
 
   # Save shared library from kernel if need
   if args.save_dir:
-    save_dir_path = Path(args.save_dir).joinpath(name)
+    save_dir_path = Path(args.save_dir)
     save_dir_path.mkdir(parents=True, exist_ok=True)
     so_path = save_dir_path.joinpath(name + "_lib.so")
     rt_lib.save(str(so_path))
