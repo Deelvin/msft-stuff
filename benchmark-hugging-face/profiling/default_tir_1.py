@@ -114,7 +114,7 @@ def get_rnd_inputs():
   p0_np = np.random.randn(*p0_shape).astype("uint8")
   p1_np = np.random.randn(*p1_shape).astype("int8")
   p2_np = np.random.randn(*p2_shape).astype("int32")
-  p3_np = np.random.randn(*p3_shape).astype("uint8")
+  p3_np = np.random.randn(*p3_shape, dtype="uint8")
   p4_np = np.random.randn(*p4_shape).astype("int32")
   Tadd_np = np.random.randn(*Tadd_shape).astype("int32")
 
