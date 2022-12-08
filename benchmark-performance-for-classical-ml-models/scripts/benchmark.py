@@ -110,17 +110,17 @@ def benchmark_row(model_name: str) -> typing.List[typing.Tuple]:
             ),
             (
                 os.path.join(
-                    models_root, "hummingbird_sklearn", f"hummingbird_{model_name}.onnx"
-                ),
-                get_dataset_generator(model_name),
-                utils.benchmark_onnx.OnnxModel,
-            ),
-            (
-                os.path.join(
                     models_root, "treelite_sklearn", f"treelite_{model_name}.so"
                 ),
                 get_dataset_generator(model_name),
                 utils.benchmark_treelite.TreeliteModel,
+            ),
+            (
+                os.path.join(
+                    models_root, "hummingbird_sklearn", f"hummingbird_{model_name}.onnx"
+                ),
+                get_dataset_generator(model_name),
+                utils.benchmark_onnx.OnnxModel,
             ),
             (
                 os.path.join(models_root, "sklearn", f"{model_name}.sklearn"),
@@ -132,17 +132,17 @@ def benchmark_row(model_name: str) -> typing.List[typing.Tuple]:
         return [
             (
                 os.path.join(
-                    models_root, "hummingbird_xgboost", f"hummingbird_{model_name}.onnx"
-                ),
-                get_dataset_generator(model_name),
-                utils.benchmark_onnx.OnnxModel,
-            ),
-            (
-                os.path.join(
                     models_root, "treelite_xgboost", f"treelite_{model_name}.so"
                 ),
                 get_dataset_generator(model_name),
                 utils.benchmark_treelite.TreeliteModel,
+            ),
+            (
+                os.path.join(
+                    models_root, "hummingbird_xgboost", f"hummingbird_{model_name}.onnx"
+                ),
+                get_dataset_generator(model_name),
+                utils.benchmark_onnx.OnnxModel,
             ),
             (
                 os.path.join(models_root, "xgboost", f"{model_name}.xgboost"),
@@ -154,19 +154,19 @@ def benchmark_row(model_name: str) -> typing.List[typing.Tuple]:
         return [
             (
                 os.path.join(
+                    models_root, "treelite_lightgbm", f"treelite_{model_name}.so"
+                ),
+                get_dataset_generator(model_name),
+                utils.benchmark_treelite.TreeliteModel,
+            ),
+            (
+                os.path.join(
                     models_root,
                     "hummingbird_lightgbm",
                     f"hummingbird_{model_name}.onnx",
                 ),
                 get_dataset_generator(model_name),
                 utils.benchmark_onnx.OnnxModel,
-            ),
-            (
-                os.path.join(
-                    models_root, "treelite_lightgbm", f"treelite_{model_name}.so"
-                ),
-                get_dataset_generator(model_name),
-                utils.benchmark_treelite.TreeliteModel,
             ),
             (
                 os.path.join(models_root, "lightgbm", f"{model_name}.lightgbm"),
