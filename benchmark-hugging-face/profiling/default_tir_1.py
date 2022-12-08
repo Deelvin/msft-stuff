@@ -103,26 +103,26 @@ class ModuleD1:
         T.writes(T_add[v_ax0, v_ax1])
         T_add[v_ax0, v_ax1] = T_subtract[v_ax0, v_ax1] + T_expand_dims[T.int64(0), v_ax1]
 
-  def get_rnd_inputs():
-    p0_shape = (54, 3072,)
-    p1_shape = (768, 3072,)
-    p2_shape = (54, 1,)
-    p3_shape = ()
-    p4_shape = (768,)
-    Tadd_shape = (54, 768,)
+def get_rnd_inputs():
+  p0_shape = (54, 3072,)
+  p1_shape = (768, 3072,)
+  p2_shape = (54, 1,)
+  p3_shape = ()
+  p4_shape = (768,)
+  Tadd_shape = (54, 768,)
 
-    p0_np = np.random.randn(*p0_shape).astype("uint8")
-    p1_np = np.random.randn(*p1_shape).astype("int8")
-    p2_np = np.random.randn(*p2_shape).astype("int32")
-    p3_np = np.random.randn(*p3_shape).astype("uint8")
-    p4_np = np.random.randn(*p4_shape).astype("int32")
-    Tadd_np = np.random.randn(*Tadd_shape).astype("int32")
+  p0_np = np.random.randn(*p0_shape).astype("uint8")
+  p1_np = np.random.randn(*p1_shape).astype("int8")
+  p2_np = np.random.randn(*p2_shape).astype("int32")
+  p3_np = np.random.randn(*p3_shape).astype("uint8")
+  p4_np = np.random.randn(*p4_shape).astype("int32")
+  Tadd_np = np.random.randn(*Tadd_shape).astype("int32")
 
-    p0_nd = tvm.nd.array(p0_np)
-    p1_nd = tvm.nd.array(p1_np)
-    p2_nd = tvm.nd.array(p2_np)
-    p3_nd = tvm.nd.array(p3_np)
-    p4_nd = tvm.nd.array(p4_np)
-    Tadd_nd = tvm.nd.array(Tadd_np)
+  p0_nd = tvm.nd.array(p0_np)
+  p1_nd = tvm.nd.array(p1_np)
+  p2_nd = tvm.nd.array(p2_np)
+  p3_nd = tvm.nd.array(p3_np)
+  p4_nd = tvm.nd.array(p4_np)
+  Tadd_nd = tvm.nd.array(Tadd_np)
 
-    return [p0_nd, p1_nd, p2_nd, p3_nd, p4_nd, Tadd_nd,]
+  return [p0_nd, p1_nd, p2_nd, p3_nd, p4_nd, Tadd_nd,]

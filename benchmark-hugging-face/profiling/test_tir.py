@@ -6,7 +6,7 @@ import tvm
 from tvm import meta_schedule as ms
 
 from utils.utils import perf_test
-from tir_utils import get_ir_mod
+from tir_utils import get_ir_mod, get_rnd_inputs
 
 
 def main():
@@ -67,8 +67,8 @@ def main():
     rt_lib.save(str(so_path))
 
   func = rt_lib["main"]
-  
-  inputs = ir_mod.get_rnd_inputs()
+
+  inputs = get_rnd_inputs(name)
   kernel_runner = partial(func, *inputs)
   perf_test(kernel_runner, args.iters_number, name)
 
