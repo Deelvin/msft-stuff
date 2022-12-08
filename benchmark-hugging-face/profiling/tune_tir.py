@@ -34,7 +34,7 @@ def main():
   name = args.kernel_name
 
   ir_mod = get_ir_mod(name)
-  
+
   print("----- Kernel tuning -----")
   # Model tuning by tvm meta-scheduler
   log_dir = Path(args.log_dir).joinpath(name)
