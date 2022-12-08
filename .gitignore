@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Output data
+/benchmark-hugging-face/kernel_libs
+/benchmark-hugging-face/kernel_logs

@@ -25,7 +25,7 @@ def main():
     "Maximal number of trials for model tuning")
   parser.add_argument("-npt", "--trials_per_task_number", default=1000, type=int, help=\
     "Number of trials per task for model tuning")
-  parser.add_argument("-l", "--log_dir", default="./profiling/kernels_logs", type=str, help=\
+  parser.add_argument("-l", "--log_dir", default="./kernel_logs", type=str, help=\
     "The path to directory with tuning statistics for the kernel")
 
   args = parser.parse_args()
