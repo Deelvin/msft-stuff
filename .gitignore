@@ -131,3 +131,4 @@ dmypy.json
 # Output data
 /benchmark-hugging-face/kernel_libs
 /benchmark-hugging-face/kernel_logs
+/benchmark-hugging-face/*.tsv
