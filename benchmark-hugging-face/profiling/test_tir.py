@@ -64,7 +64,7 @@ def main():
     save_dir_path = Path(args.save_dir)
     save_dir_path.mkdir(parents=True, exist_ok=True)
     so_path = save_dir_path.joinpath(name + "_lib.so")
-    rt_lib.save(str(so_path))
+    rt_lib.save(str(so_path.resolve()))
 
   func = rt_lib["main"]
 
