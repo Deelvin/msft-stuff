@@ -5,7 +5,7 @@ from functools import partial
 import tvm
 from tvm import meta_schedule as ms
 
-from utils.utils import perf_test
+from utils.utils import SKYLAKE_TARGET, perf_test
 from tir_utils import get_ir_mod, get_rnd_inputs
 
 
@@ -21,7 +21,7 @@ def main():
   # Model format
   parser.add_argument("-k", "--kernel_name", default="D1", type=str, help=\
     "The name of kernel implemented by TIR")
-  parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
+  parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")

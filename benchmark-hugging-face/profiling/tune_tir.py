@@ -2,8 +2,10 @@ from pathlib import Path
 import argparse
 
 import tvm
+from tvm import meta_schedule as ms
 
-from utils.tvm_utils import tvm_meta_tuning
+from utils.meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
+from utils.utils import SKYLAKE_TARGET
 from tir_utils import get_ir_mod
 
 
@@ -19,12 +21,10 @@ def main():
   # Model format
   parser.add_argument("-k", "--kernel_name", default="D1", type=str, help=\
     "The name of kernel implemented by TIR")
-  parser.add_argument("-t", "--target", default="llvm -mcpu=skylake-avx512", type=str, help=\
+  parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
-  parser.add_argument("-n", "--trials_number", default=20000, type=int, help=\
+  parser.add_argument("-n", "--trials_number", default=2048, type=int, help=\
     "Maximal number of trials for model tuning")
-  parser.add_argument("-npt", "--trials_per_task_number", default=1000, type=int, help=\
-    "Number of trials per task for model tuning")
   parser.add_argument("-l", "--log_dir", default="./kernel_logs", type=str, help=\
     "The path to directory with tuning statistics for the kernel")
 
@@ -32,22 +32,32 @@ def main():
 
   target = tvm.target.Target(args.target, args.target)
   name = args.kernel_name
+  log_dir = Path(args.log_dir).joinpath(name)
+  log_dir.mkdir(parents=True, exist_ok=True)
+
+  workload_path = get_workload_path(log_dir)
+  record_path = get_record_path(log_dir)
+  work_dir = get_work_dir(log_dir)
+  # Empty data base with workload and record file names
+  database = ms.database.JSONDatabase(
+    workload_path,
+    record_path,
+    work_dir=work_dir,
+    module_equality=MODULE_EQUALITY,
+  )
 
   ir_mod = get_ir_mod(name)
 
-  print("----- Kernel tuning -----")
-  # Model tuning by tvm meta-scheduler
-  log_dir = Path(args.log_dir).joinpath(name)
-  log_dir.mkdir(parents=True, exist_ok=True)
-  tvm_meta_tuning(
-    ir_mod,
-    None,
-    target,
-    trials_num=args.trials_number,
-    trials_per_task_num=args.trials_per_task_number,
-    log_dir=log_dir,
+  print("----- Kernel TIR tuning -----")
+  ms.tir_integration.tune_tir(
+      mod=ir_mod,
+      target=target,
+      work_dir=str(work_dir),
+      max_trials_global=args.trials_number,
+      database=database,
+      strategy="replay-trace",
   )
-  print("----- Kernel tuning finished -----")
+  print("----- Kernel TIR tuning finished -----")
 
 
 if __name__ == "__main__":
