@@ -4,7 +4,7 @@ import argparse
 import tvm
 from tvm import meta_schedule as ms
 
-from utils.meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
+from utils.meta_utils import get_json_database
 from utils.utils import SKYLAKE_TARGET
 from tir_utils import get_ir_mod
 
@@ -34,17 +34,7 @@ def main():
   name = args.kernel_name
   log_dir = Path(args.log_dir).joinpath(name)
   log_dir.mkdir(parents=True, exist_ok=True)
-
-  workload_path = get_workload_path(log_dir)
-  record_path = get_record_path(log_dir)
-  work_dir = get_work_dir(log_dir)
-  # Empty data base with workload and record file names
-  database = ms.database.JSONDatabase(
-    workload_path,
-    record_path,
-    work_dir=work_dir,
-    module_equality=MODULE_EQUALITY,
-  )
+  database = get_json_database(log_dir)
 
   ir_mod = get_ir_mod(name)
 

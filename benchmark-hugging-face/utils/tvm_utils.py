@@ -12,7 +12,7 @@ from tvm.runtime import vm as tvm_rt_vm
 from tvm.runtime import profiler_vm
 
 from utils.utils import DISTILBERT_TEST_TEXT, get_distilbert_inputs
-from utils.meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
+from utils.meta_utils import MODULE_EQUALITY, get_work_dir, get_json_database
 
 
 def get_distilbert_mod_params_with_inputs(onnx_model,
@@ -90,16 +90,7 @@ def get_tvm_tuned_vm_lib(
           lib = get_vm_lib(mod, target, target_host, params)
     elif tuning_type == META_TYPE:
       print("Use tuning files from directory:", tuning_log)
-      workload_path = get_workload_path(tuning_log)
-      record_path = get_record_path(tuning_log)
-      work_dir = get_work_dir(tuning_log)
-      # Import data base from workload and record files
-      database = ms.database.JSONDatabase(
-        workload_path,
-        record_path,
-        work_dir=work_dir,
-        module_equality=MODULE_EQUALITY,
-      )
+      database = get_json_database(tuning_log)
 
       lib = ms.relay_integration.compile_relay(
         database=database,
@@ -314,23 +305,15 @@ def tvm_meta_tuning(
     ):
   # Without this, the same workloads with different constant weights
   # are treated as distinct tuning tasks.
-  workload_path = get_workload_path(log_dir)
-  record_path = get_record_path(log_dir)
-  work_dir = get_work_dir(log_dir)
-  # Empty data base with workload and record file names
-  database = ms.database.JSONDatabase(
-    workload_path,
-    record_path,
-    work_dir=work_dir,
-    module_equality=MODULE_EQUALITY,
-  )
+  database = get_json_database(log_dir)
+
   print("Begin meta-scheduler tuning...")
   tune_relay_with_task_extractor(
     mod=mod,
     target=target,
     params=params,
     database=database,
-    work_dir=work_dir,
+    work_dir=get_work_dir(log_dir),
     module_equality=MODULE_EQUALITY,
     trials_num=trials_num,
     max_trials_per_task=trials_per_task_num,

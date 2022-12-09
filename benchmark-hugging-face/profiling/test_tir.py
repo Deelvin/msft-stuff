@@ -41,19 +41,11 @@ def main():
   ir_mod = get_ir_mod(name)
   if args.use_meta:
     # get kernel after transformations by meta-scheduler
-    from utils.meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
+    from utils.meta_utils import get_json_database
     meta_dir = Path(args.meta_dir).joinpath(name)
     meta_dir.mkdir(parents=True, exist_ok=True)
 
-    workload_path = get_workload_path(meta_dir)
-    records_path = get_record_path(meta_dir)
-    work_dir = get_work_dir(meta_dir)
-    database = ms.database.JSONDatabase(
-      path_workload=workload_path,
-      path_tuning_record=records_path,
-      work_dir=work_dir,
-      module_equality=MODULE_EQUALITY,
-    )
+    database = get_json_database(meta_dir)
 
     shed = ms.tir_integration.compile_tir(
             database=database,
