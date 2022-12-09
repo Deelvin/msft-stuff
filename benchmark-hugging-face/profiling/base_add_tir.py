@@ -12,7 +12,7 @@ class BaseAdd:
            B: T.Buffer[(4, 4), "int64"],
            C: T.Buffer[(4, 4), "int64"]
       ):
-    T.func_attr({"global_symbol": "add"})
+    T.func_attr({"global_symbol": "main"})
     for i, j in T.grid(4, 4):
       with T.block("C"):
         vi = T.axis.spatial(4, i)
