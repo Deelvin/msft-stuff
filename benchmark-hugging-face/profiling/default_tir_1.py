@@ -78,7 +78,7 @@ def get_rnd_inputs():
   Treshape_shape = (54, 3072,)
 
   p0_np = np.random.randn(*p0_shape).astype("float32")
-  p1_np = np.random.rand(dtype="float32")
+  p1_np = np.random.rand()
   p2_np = np.random.randint(0, 255, dtype="uint8")
   Treshape_np = np.random.randn(*Treshape_shape).astype("uint8")
 
