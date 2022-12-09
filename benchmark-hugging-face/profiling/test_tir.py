@@ -25,8 +25,11 @@ def main():
     "Target for model inference")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")
-  parser.add_argument("-m", "--meta_dir", default=None, type=str, help=\
-    "The path to directory with statistics for kernel implemented by TIR")
+  parser.add_argument("-m", "--use_meta", action="store_true", default=False, help=\
+    "Switch on using of statistics from meta-scheduler by kernel during compilation")
+  parser.add_argument("-md", "--meta_dir", default="./kernel_logs", type=str, help=\
+    "The path to directory with statistics for kernel implemented by TIR. " +
+    "Statistics are located in directory with kernel name inside the mets directory")
   parser.add_argument("-s", "--save_dir", default="./kernel_libs", type=str, help=\
     "The path to save directory. If it is not empty the shared library of kernel (<kernel_name>_lib.so) is tried to save there")
 
@@ -36,12 +39,15 @@ def main():
   name = args.kernel_name
 
   ir_mod = get_ir_mod(name)
-  if args.meta_dir:
+  if args.use_meta:
     # get kernel after transformations by meta-scheduler
     from utils.meta_utils import MODULE_EQUALITY, get_workload_path, get_record_path, get_work_dir
-    workload_path = get_workload_path(args.meta_dir)
-    records_path = get_record_path(args.meta_dir)
-    work_dir = get_work_dir(args.meta_dir)
+    meta_dir = Path(args.meta_dir).joinpath(name)
+    meta_dir.mkdir(parents=True, exist_ok=True)
+
+    workload_path = get_workload_path(meta_dir)
+    records_path = get_record_path(meta_dir)
+    work_dir = get_work_dir(meta_dir)
     database = ms.database.JSONDatabase(
       path_workload=workload_path,
       path_tuning_record=records_path,
