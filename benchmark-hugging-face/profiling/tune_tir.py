@@ -4,7 +4,7 @@ import argparse
 import tvm
 from tvm import meta_schedule as ms
 
-from utils.meta_utils import get_json_database
+from utils.meta_utils import get_json_database, get_work_dir
 from utils.utils import SKYLAKE_TARGET
 from tir_utils import get_ir_mod
 
@@ -42,7 +42,7 @@ def main():
   ms.tir_integration.tune_tir(
       mod=ir_mod,
       target=target,
-      work_dir=str(work_dir),
+      work_dir=get_work_dir(log_dir),
       max_trials_global=args.trials_number,
       database=database,
       strategy="replay-trace",
