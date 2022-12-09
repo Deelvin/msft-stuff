@@ -48,7 +48,7 @@ def main():
       work_dir=work_dir,
       module_equality=MODULE_EQUALITY,
     )
-    
+
     shed = ms.tir_integration.compile_tir(
             database=database,
             mod=ir_mod,
