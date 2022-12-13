@@ -3,6 +3,7 @@ import argparse
 
 import tvm
 from tvm import meta_schedule as ms
+from tvm.topi.x86.utils import target_has_vnni
 
 from utils.meta_utils import get_json_database, get_work_dir
 from utils.utils import SKYLAKE_TARGET
