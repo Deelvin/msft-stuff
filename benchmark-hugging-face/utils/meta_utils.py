@@ -7,7 +7,7 @@ from tvm import meta_schedule as ms
 MODULE_EQUALITY="ignore-ndarray"
 # Tuning params for upstreaming relay and TIR
 TUNE_SPACE = "post-order-apply"
-TUNE_STRATEGY = "replay-trace",  # TODO(vvchernov): "evolutionary",
+TUNE_STRATEGY = "replay-trace"  # TODO(vvchernov): "evolutionary",
 TUNE_SEED = None
 TUNE_BUILDER = "local"
 TUNE_RUNNER = "local"
