@@ -12,7 +12,20 @@ from tvm.runtime import vm as tvm_rt_vm
 from tvm.runtime import profiler_vm
 
 from utils.utils import DISTILBERT_TEST_TEXT, get_distilbert_inputs
-from utils.meta_utils import MODULE_EQUALITY, get_work_dir, get_json_database
+from utils.meta_utils import (
+  MODULE_EQUALITY,
+  TUNE_SPACE,
+  TUNE_STRATEGY,
+  TUNE_SEED,
+  TUNE_BUILDER,
+  TUNE_RUNNER,
+  TUNE_COST_MODEL,
+  TUNE_MEASURE_CALLBACKS,
+  TUNE_TASK_SCHEDULER,
+  TUNE_NUM_TRIALS_PER_ITER,
+  get_work_dir,
+  get_json_database,
+)
 
 
 def get_distilbert_mod_params_with_inputs(onnx_model,
@@ -230,32 +243,21 @@ def tune_relay_with_task_extractor(
       params,
       database,
       work_dir,
-      module_equality,
       trials_num = 20000,
       max_trials_per_task=128,
-      num_trials_per_iter=16,
-      strategy="replay-trace",  # TODO(vvchernov): "evolutionary",
       extracted_task_indices=[],
       excluded_task_indices=[],
     ):
-  space = "post-order-apply"
-  seed = None
-  builder = "local"
-  runner = "local"
-  cost_model = "xgb"
-  measure_callbacks = "default"
-  task_scheduler = "gradient"
-
   tasks, task_weights = ms.relay_integration.extracted_tasks_to_tune_contexts(
     extracted_tasks=ms.relay_integration.extract_tasks(
                       mod,
                       target,
                       params,
-                      module_equality=module_equality),
+                      module_equality=MODULE_EQUALITY),
     work_dir=work_dir,
-    space=space,
-    strategy=strategy,
-    seed=seed,
+    space=TUNE_SPACE,
+    strategy=TUNE_STRATEGY,
+    seed=TUNE_SEED,
   )
 
   if extracted_task_indices and excluded_task_indices:
@@ -283,14 +285,14 @@ def tune_relay_with_task_extractor(
       work_dir=work_dir,
       max_trials_global=trials_num,
       max_trials_per_task=max_trials_per_task,
-      num_trials_per_iter=num_trials_per_iter,
-      builder=builder,
-      runner=runner,
+      num_trials_per_iter=TUNE_NUM_TRIALS_PER_ITER,
+      builder=TUNE_BUILDER,
+      runner=TUNE_RUNNER,
       database=database,
-      cost_model=cost_model,
-      measure_callbacks=measure_callbacks,
-      task_scheduler=task_scheduler,
-      module_equality=module_equality,
+      cost_model=TUNE_COST_MODEL,
+      measure_callbacks=TUNE_MEASURE_CALLBACKS,
+      task_scheduler=TUNE_TASK_SCHEDULER,
+      module_equality=MODULE_EQUALITY,
   )
 
 def tvm_meta_tuning(
@@ -314,7 +316,6 @@ def tvm_meta_tuning(
     params=params,
     database=database,
     work_dir=get_work_dir(log_dir),
-    module_equality=MODULE_EQUALITY,
     trials_num=trials_num,
     max_trials_per_task=trials_per_task_num,
     extracted_task_indices=task_indices,

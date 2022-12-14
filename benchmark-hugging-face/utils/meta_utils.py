@@ -5,6 +5,16 @@ from tvm import meta_schedule as ms
 
 
 MODULE_EQUALITY="ignore-ndarray"
+# Tuning params for upstreaming relay and TIR
+TUNE_SPACE = "post-order-apply"
+TUNE_STRATEGY = "replay-trace",  # TODO(vvchernov): "evolutionary",
+TUNE_SEED = None
+TUNE_BUILDER = "local"
+TUNE_RUNNER = "local"
+TUNE_COST_MODEL = "xgb"
+TUNE_MEASURE_CALLBACKS = "default"
+TUNE_TASK_SCHEDULER = "gradient"
+TUNE_NUM_TRIALS_PER_ITER = 64
 
 def get_workload_path(dir: Union[str, Path]):
   if isinstance(dir, str):

@@ -5,9 +5,21 @@ import tvm
 from tvm import meta_schedule as ms
 from tvm.topi.x86.utils import target_has_vnni
 
-from utils.meta_utils import get_json_database, get_work_dir
 from utils.utils import SKYLAKE_TARGET
 from tir_utils import get_ir_mod
+from utils.meta_utils import (
+  TUNE_NUM_TRIALS_PER_ITER,
+  TUNE_BUILDER,
+  TUNE_RUNNER,
+  TUNE_COST_MODEL,
+  TUNE_MEASURE_CALLBACKS,
+  TUNE_TASK_SCHEDULER,
+  TUNE_SPACE,
+  TUNE_STRATEGY,
+  TUNE_SEED,
+  get_json_database,
+  get_work_dir,
+)
 
 
 def main():
@@ -45,8 +57,16 @@ def main():
       target=target,
       work_dir=get_work_dir(log_dir),
       max_trials_global=args.trials_number,
+      num_trials_per_iter=TUNE_NUM_TRIALS_PER_ITER,
+      builder=TUNE_BUILDER,
+      runner=TUNE_RUNNER,
       database=database,
-      strategy="replay-trace",
+      cost_model=TUNE_COST_MODEL,
+      measure_callbacks=TUNE_MEASURE_CALLBACKS,
+      task_scheduler=TUNE_TASK_SCHEDULER,
+      space=TUNE_SPACE,
+      strategy=TUNE_STRATEGY,
+      seed=TUNE_SEED,
   )
   print("----- Kernel TIR tuning finished -----")
 
