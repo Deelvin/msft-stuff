@@ -34,7 +34,7 @@ def get_rnd_inputs():
 
   p0_np = np.random.randn(*p0_shape).astype("uint8")
   p1_np = np.random.randn(*p1_shape).astype("int8")
-  T_matmul_np = np.random.zero(*T_matmul_shape).astype("int32")
+  T_matmul_np = np.empty(T_matmul_shape, dtype=np.int32)
 
   p0_nd = tvm.nd.array(p0_np)
   p1_nd = tvm.nd.array(p1_np)
