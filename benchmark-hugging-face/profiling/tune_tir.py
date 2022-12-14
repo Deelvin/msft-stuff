@@ -32,7 +32,7 @@ def main():
     formatter_class=MyFormatter
   )
   # Model format
-  parser.add_argument("-k", "--kernel_name", default="D1", type=str, help=\
+  parser.add_argument("-k", "--kernel_name", default="Dense", type=str, help=\
     "The name of kernel implemented by TIR")
   parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
