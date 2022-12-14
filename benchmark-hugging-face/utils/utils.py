@@ -9,6 +9,7 @@ DISTILBERT_TEST_TEXT = """
 Replace me by any text you'd like. DistilBERT is a distilled version of the BERT mode with 40 percent smaller size 
 and 60 percent faster inference time, while preserving over 95 percent of BERT's accuracy on the GLUE language understanding task.
 """
+ART_SIZE=128
 
 def perf_test(run, iters_number = 1000, model_name = "ResNet50-v1", framework_name = "TVM+VM"):
   assert iters_number > 0
@@ -31,7 +32,7 @@ def get_distilbert_inputs(artificial: bool,
                           tag : str = "distilbert-base-uncased"):
   inputs = {}
   if artificial:
-    shape = [1, 128]
+    shape = [1, ART_SIZE]
     inputs = {
       "input_ids": np.random.uniform(size=shape, low = 0, high=2000).astype("int64"),
       "attention_mask": np.ones(shape).astype("int64"),
