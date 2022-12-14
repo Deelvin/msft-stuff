@@ -5,6 +5,39 @@ import numpy as np
 import tvm
 from tvm.script import tir as T
 
+# Hand-made modification
+# @tvm.script.ir_module
+# class ModuleD2:
+#   @T.prim_func
+#   def main(p0: T.Buffer[(T.int64(54), T.int64(3072)), "uint8"],
+#            p1: T.Buffer[(T.int64(768), T.int64(3072)), "int8"],
+#            ## not needed p2: T.Buffer[(T.int64(54), T.int64(1)), "int32"],
+#            p3: T.Buffer[(), "uint8"],
+#            p4: T.Buffer[T.int64(768), "int32"],
+#            T_subtract: T.Buffer[(T.int64(54), T.int64(768)), "int32"]):
+#     # function attr dict
+#     T.func_attr({"global_symbol": "main", "tir.noalias": True})
+#     # buffer definition
+#     p1_1 = T.buffer_decl([768, 3072], dtype="int8", data=p1.data)
+#     # body
+#     # with T.block("root")
+#     T_matmul_NT = T.alloc_buffer([T.int64(54), T.int64(768)], dtype="int32")
+#     for i, j, k in T.grid(T.int64(54), T.int64(768), T.int64(3072)):
+#       with T.block("T_matmul_NT"):
+#         v_i, v_j, v_k = T.axis.remap("SSR", [i, j, k])
+#         T.reads(p0[v_i, v_k], p1[v_j, v_k])
+#         T.writes(T_matmul_NT[v_i, v_j])
+#         T.block_attr({"layout_free_placeholders":[p1_1]})
+#         with T.init():
+#           T_matmul_NT[v_i, v_j] = 0
+#         T_matmul_NT[v_i, v_j] = T_matmul_NT[v_i, v_j] + T.Cast("int32", p0[v_i, v_k]) * T.Cast("int32", p1[v_j, v_k])
+#     for ax0, ax1 in T.grid(T.int64(54), T.int64(768)):
+#       with T.block("T_subtract"):
+#         v_ax0, v_ax1 = T.axis.remap("SS", [ax0, ax1])
+#         T.reads(T_matmul_NT[v_ax0, v_ax1], p3[()], p4[v_ax0])
+#         T.writes(T_subtract[v_ax0, v_ax1])
+#         T_subtract[v_ax0, v_ax1] = T_matmul_NT[v_ax0, v_ax1] - T.Cast("int32", p3[()]) * p4[v_ax0]
+
 
 @tvm.script.ir_module
 class ModuleD2:
