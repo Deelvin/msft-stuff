@@ -53,8 +53,8 @@ if __name__ == "__main__":
     tvm_meta_tuning(
       mod,
       params,
-      args.opt_level,
       tvm.target.Target(args.target, args.target),
+      args.opt_level,
       trials_num=args.trials_number,
       trials_per_task_num=args.trials_per_task_number,
       log_dir=log_dir,

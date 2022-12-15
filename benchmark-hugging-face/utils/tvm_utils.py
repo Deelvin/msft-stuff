@@ -254,7 +254,7 @@ def tune_relay_with_task_extractor(
                       mod,
                       target,
                       params,
-                      opt_level,
+                      opt_level=opt_level,
                       module_equality=MODULE_EQUALITY),
     work_dir=work_dir,
     space=TUNE_SPACE,
