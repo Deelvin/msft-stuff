@@ -27,6 +27,8 @@ if __name__ == "__main__":
     "Performance test of ONNX Runtime")
   parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
+  parser.add_argument("-o", "--opt_level", default=3, type=int, help=\
+    "Optimization level for TVM compilation")
   parser.add_argument("-n", "--iters_number", default=1000, type=int, help=\
     "Number of iterations of inference for performance measurement")
   parser.add_argument("-tu", "--tuning_logs", default="", type=str, help=\
@@ -38,7 +40,6 @@ if __name__ == "__main__":
 
   args = parser.parse_args()
 
-  opt_level = 3
   freeze = True
 
   onnx_model = onnx.load(args.model_path)
@@ -57,7 +58,7 @@ if __name__ == "__main__":
       benchmark_test,
       onnx_model,
       encoded_inputs,
-      opt_level,
+      args.opt_level,
       args.target,
       args.target,
       freeze,

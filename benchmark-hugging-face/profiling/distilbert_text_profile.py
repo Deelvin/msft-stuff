@@ -23,14 +23,14 @@ if __name__ == "__main__":
     "Test input text for Distilbert-base-cased model")
   parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
+  parser.add_argument("-o", "--opt_level", default=3, type=int, help=\
+    "Optimization level for TVM compilation")
   parser.add_argument("-tu", "--tuning_logs", default="", type=str, help=\
     "The path to tuning logs. It can be json file for auto-scheduler or directory for meta-scheduler")
   parser.add_argument("-meta", action="store_true", default=False, help=\
     "Use meta-scheduler database files for compilation")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
     "Artificially generated inputs. if false the default text from utils is tokenized")
-  parser.add_argument("-o", "--opt_level", default=3, type=int, help=\
-    "Optimization level for TVM compilation")
 
   args = parser.parse_args()
 
