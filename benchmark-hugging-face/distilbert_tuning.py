@@ -26,6 +26,8 @@ if __name__ == "__main__":
     "Number of trials per task for model tuning")
   parser.add_argument("-t", "--target", default=SKYLAKE_TARGET, type=str, help=\
     "Target for model inference")
+  parser.add_argument("-o", "--opt_level", default=3, type=int, help=\
+    "Optimization level for TVM compilation")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
     "Artificially generated inputs. if false the default text from utils is tokenized")
   parser.add_argument("--meta", action="store_true", default=False, help=\
@@ -51,6 +53,7 @@ if __name__ == "__main__":
     tvm_meta_tuning(
       mod,
       params,
+      args.opt_level,
       tvm.target.Target(args.target, args.target),
       trials_num=args.trials_number,
       trials_per_task_num=args.trials_per_task_number,
