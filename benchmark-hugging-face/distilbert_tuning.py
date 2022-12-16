@@ -32,6 +32,8 @@ if __name__ == "__main__":
     "Artificially generated inputs. if false the default text from utils is tokenized")
   parser.add_argument("--meta", action="store_true", default=False, help=\
     "Switch on meta scheduler, by default it is auto scheduler")
+  parser.add_argument("-d", "--use_dnnl", action="store_true", default=False, help=\
+    "Switch on using DNNL")
   parser.add_argument("-e", "--extracted_task_indices", nargs="*", type=int, default=[], help=\
     "Indices of task which should be extracted form the model for tuning. Need for effective debugging")
   parser.add_argument("-ex", "--excluded_task_indices", nargs="*", type=int, default=[], help=\
@@ -41,7 +43,12 @@ if __name__ == "__main__":
 
   onnx_model = onnx.load(args.model_path)
 
-  mod, params = get_distilbert_mod_params(onnx_model, args.artificial_input)
+  mod, params = get_distilbert_mod_params(
+                  onnx_model,
+                  args.artificial_input,
+                  args.opt_level,
+                  use_dnnl=args.use_dnnl,
+                )
   model_path = Path(args.model_path)
   model_name = model_path.stem
 

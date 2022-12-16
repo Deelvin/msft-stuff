@@ -7,6 +7,7 @@ from tvm import autotvm
 from tvm import relay, auto_scheduler
 from tvm import meta_schedule as ms
 from tvm.relay import vm
+from tvm.relay.op.contrib import dnnl
 from tvm.relay.backend import Executor
 from tvm.runtime import vm as tvm_rt_vm
 from tvm.runtime import profiler_vm
@@ -30,12 +31,36 @@ from utils.meta_utils import (
 
 def get_distilbert_mod_params_with_inputs(onnx_model,
                                           inputs,
-                                          freeze=True):
+                                          opt_level,
+                                          freeze=True,
+                                          dnnl_enabled=False,
+                                          prune_subgraphs=True,):
   shape_dict = {input_name: input.shape for (input_name, input) in inputs.items()}
   mod, params = relay.frontend.from_onnx(onnx_model, shape_dict, freeze_params=freeze)
   mod = relay.transform.DynamicToStatic()(mod)
 
-  # Set attr for correct tuning by meta-scheduler
+  # See details in https://github.com/apache/tvm/blob/e9b331831aef4f4866c719b8bd66b436038b3496/tests/python/contrib/test_dnnl.py#L61
+  # conv support was skipped
+  if dnnl_enabled:
+    mod = dnnl.rewrite_layer_norm(mod)
+    mod = dnnl.rewrite_dense_bias_gelu_reshape_last(mod)
+    mod = dnnl.legalize_qnn_for_dnnl(mod)
+
+    byoc_seq = tvm.transform.Sequential(
+        [
+            relay.transform.MergeComposite(dnnl.pattern_table()),
+            relay.transform.AnnotateTarget("dnnl"),
+            relay.transform.MergeCompilerRegions(),
+            relay.transform.PartitionGraph(),
+        ]
+    )
+
+    with tvm.transform.PassContext(opt_level=opt_level):
+        mod = byoc_seq(mod)
+        if prune_subgraphs:
+            mod = dnnl.prune_dnnl_subgraphs(mod)
+
+  # Set attr which insert const tensor in TIR
   executor = Executor("graph", {"link-params": True}) # "aot"
   mod = mod.with_attr("executor", executor)
 
@@ -43,11 +68,21 @@ def get_distilbert_mod_params_with_inputs(onnx_model,
 
 def get_distilbert_mod_params(onnx_model,
                               artificial: bool,
+                              opt_level: int,
                               input_text : str = DISTILBERT_TEST_TEXT,
-                              tag : str = "distilbert-base-uncased"):
+                              tag : str = "distilbert-base-uncased",
+                              use_dnnl: bool = False,
+                              prune: bool = True):
   encoded_inputs = get_distilbert_inputs(artificial, input_text, tag)
 
-  return get_distilbert_mod_params_with_inputs(onnx_model, encoded_inputs)
+  return get_distilbert_mod_params_with_inputs(
+            onnx_model,
+            encoded_inputs,
+            opt_level,
+            freeze=True,
+            dnnl_enabled=use_dnnl,
+            prune_subgraphs=prune,
+         )
 
 def get_vm_lib(irmod, target, params):
     return vm.compile(
@@ -153,10 +188,19 @@ def tvm_test(
       freeze=True,
       tuning_logs="",
       use_meta=False,
+      use_dnnl=False,
+      prune=True,
       model_name="",
     ):
   print("----- TVM testing of", model_name, "-----")
-  mod, params = get_distilbert_mod_params_with_inputs(onnx_model, inputs, freeze)
+  mod, params = get_distilbert_mod_params_with_inputs(
+                  onnx_model,
+                  inputs,
+                  opt_level,
+                  freeze=freeze,
+                  dnnl_enabled=use_dnnl,
+                  prune_subgraphs=prune,
+                )
 
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
@@ -188,10 +232,19 @@ def tvm_profile(
       freeze=True,
       tuning_logs="",
       use_meta=False,
+      use_dnnl=False,
+      prune=True,
       model_name="",
     ):
   print("----- TVM profiling of", model_name, "-----")
-  mod, params = get_distilbert_mod_params_with_inputs(onnx_model, inputs, freeze)
+  mod, params = get_distilbert_mod_params_with_inputs(
+                  onnx_model,
+                  inputs,
+                  opt_level,
+                  freeze=freeze,
+                  dnnl_enabled=use_dnnl,
+                  prune_subgraphs=prune,
+                )
 
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
@@ -208,7 +261,7 @@ def tvm_profile(
           params,
           tuning_log=tuning_logs,
           tuning_type=tuning_type,
-          )
+        )
   vm = profiler_vm.VirtualMachineProfiler(lib, dev)
   res = vm.profile(func_name="main", **tvm_inputs)
   print("Profiling result:", res)

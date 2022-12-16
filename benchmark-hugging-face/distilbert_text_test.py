@@ -35,6 +35,8 @@ if __name__ == "__main__":
     "The path to tuning logs. It can be json file for auto-scheduler or directory for meta-scheduler")
   parser.add_argument("-meta", action="store_true", default=False, help=\
     "Use meta-scheduler database files for compilation")
+  parser.add_argument("-d", "--use_dnnl", action="store_true", default=False, help=\
+    "Switch on using DNNL")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
     "Artificially generated inputs. if false the default text from utils is tokenized")
 
@@ -64,6 +66,7 @@ if __name__ == "__main__":
       freeze,
       args.tuning_logs,
       args.meta,
+      args.use_dnnl,
       model_name=Path(args.model_path).stem
     )
 

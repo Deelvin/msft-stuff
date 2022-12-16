@@ -34,6 +34,8 @@ if __name__ == "__main__":
     "Number of iterations of inference for performance measurement")
   parser.add_argument("-a", "--artificial_input", action="store_true", default=False, help=\
     "Artificially generated inputs. if false the default text from utils is tokenized")
+  parser.add_argument("-d", "--use_dnnl", action="store_true", default=False, help=\
+    "Switch on using DNNL")
 
   args = parser.parse_args()
 
@@ -48,7 +50,16 @@ if __name__ == "__main__":
 
   if(args.tvm):
     from utils.tvm_utils import tvm_test
-    tvm_test(benchmark_test, onnx_model, encoded_inputs, opt_level, args.target, args.target, freeze)
+    tvm_test(
+      benchmark_test,
+      onnx_model,
+      encoded_inputs,
+      opt_level,
+      args.target,
+      args.target,
+      freeze,
+      use_dnnl=args.use_dnnl,
+    )
 
   if args.ort:
     from utils.ort_utils import ort_test
