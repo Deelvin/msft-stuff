@@ -49,12 +49,11 @@ def get_distilbert_mod_params(onnx_model,
 
   return get_distilbert_mod_params_with_inputs(onnx_model, encoded_inputs)
 
-def get_vm_lib(irmod, target, target_host, params):
+def get_vm_lib(irmod, target, params):
     return vm.compile(
               copy.deepcopy(irmod),
               target,
               params=params,
-              target_host=target_host,
            )
 
 ANSOR_TYPE = "Ansor"
@@ -64,7 +63,6 @@ def get_tvm_tuned_vm_lib(
       mod,
       opt_level,
       target,
-      target_host,
       params,
       nhwc=False,
       tuning_log="",
@@ -95,12 +93,12 @@ def get_tvm_tuned_vm_lib(
             model_nhwc = relay.transform.ConvertLayout(desired_layouts)(mod)
             model_nhwc = relay.transform.EliminateCommonSubexpr()(model_nhwc)
             mod = relay.transform.FoldConstant()(model_nhwc)
-          lib = get_vm_lib(mod, target, target_host, params)
+          lib = get_vm_lib(mod, target, params)
     elif tuning_type == AUTO_TVM_TYPE:
       print("Use tuning file from ", tuning_log)
       with relay.build_config(opt_level=opt_level):
         with autotvm.apply_history_best(tuning_log):
-          lib = get_vm_lib(mod, target, target_host, params)
+          lib = get_vm_lib(mod, target, params)
     elif tuning_type == META_TYPE:
       print("Use tuning files from directory:", tuning_log)
       database = get_json_database(tuning_log)
@@ -121,14 +119,13 @@ def get_tvm_tuned_vm_lib(
       return None
   else:
     with tvm.transform.PassContext(opt_level=opt_level):
-      lib = get_vm_lib(mod, target, target_host, params)
+      lib = get_vm_lib(mod, target, params)
 
   return lib
 
 def get_tvm_vm(mod,
                opt_level,
                target,
-               target_host,
                params,
                dev,
                nhwc=False,
@@ -139,7 +136,6 @@ def get_tvm_vm(mod,
           mod,
           opt_level,
           target,
-          target_host,
           params,
           nhwc=nhwc,
           tuning_log=tuning_log,
@@ -165,6 +161,7 @@ def tvm_test(
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
   dev = tvm.device(str(target), 0)
+  tvm_target = tvm.target.Target(target, target_host)
   if use_meta:
     tuning_type = META_TYPE
   else:
@@ -172,8 +169,7 @@ def tvm_test(
   m = get_tvm_vm(
         mod,
         opt_level,
-        target,
-        target_host,
+        tvm_target,
         params,
         dev,
         tuning_log=tuning_logs,
@@ -200,6 +196,7 @@ def tvm_profile(
   tvm_inputs = {input_name: tvm.nd.array(input) for (input_name, input) in inputs.items()}
 
   dev = tvm.device(str(target), 0)
+  tvm_target = tvm.target.Target(target, target_host)
   if use_meta:
     tuning_type = META_TYPE
   else:
@@ -207,8 +204,7 @@ def tvm_profile(
   lib = get_tvm_tuned_vm_lib(
           mod,
           opt_level,
-          target,
-          target_host,
+          tvm_target,
           params,
           tuning_log=tuning_logs,
           tuning_type=tuning_type,
