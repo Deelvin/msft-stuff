@@ -11,6 +11,8 @@ from tvm.relay.op.contrib import dnnl
 from tvm.relay.backend import Executor
 from tvm.runtime import vm as tvm_rt_vm
 from tvm.runtime import profiler_vm
+# Preregistration
+from tvm.tir.tensor_intrin import *
 
 from utils.utils import DISTILBERT_TEST_TEXT, get_distilbert_inputs
 from utils.meta_utils import (
