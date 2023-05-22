@@ -24,7 +24,7 @@ lightgbm==3.3.3
 LunarCalendar==0.0.9
 matplotlib==3.6.2
 mccabe==0.7.0
-mpmath==1.2.1
+mpmath==1.3.0
 mypy==0.991
 mypy-extensions==0.4.3
 numpy==1.23.4
